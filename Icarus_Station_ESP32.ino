@@ -22,13 +22,13 @@
 // ============================================
 // НАСТРОЙКИ WI-FI
 // ============================================
-const char* ssid = "YOUR_WIFI_SSID";        // Замените на имя вашей Wi-Fi сети
-const char* password = "YOUR_WIFI_PASSWORD"; // Замените на пароль вашей Wi-Fi сети
+const char* ssid = "Iphone(Шынгыс)";        // Замените на имя вашей Wi-Fi сети
+const char* password = "123456789"; // Замените на пароль вашей Wi-Fi сети
 
 // ============================================
 // НАСТРОЙКИ СЕРВЕРА
 // ============================================
-const char* serverUrl = "http://YOUR_SERVER_IP:PORT/api/sensors"; // URL вашего сервера
+const char* serverUrl = "http://172.20.10.3:5000/api/sensors"; // URL вашего сервера
 
 // ============================================
 // ПИНЫ ПОДКЛЮЧЕНИЯ ДАТЧИКОВ
@@ -42,9 +42,11 @@ const char* serverUrl = "http://YOUR_SERVER_IP:PORT/api/sensors"; // URL ваш�
 // ============================================
 #define DHTTYPE DHT22     // Тип датчика DHT22 (AM2302)
 
-// Калибровочные значения для MQ датчиков
-#define MQ2_THRESHOLD 1000  // Пороговое значение для MQ-2 (0-4095)
-#define MQ7_THRESHOLD 1000  // Пороговое значение для MQ-7 (0-4095)
+// Калибровочные значения для MQ датчиков (ESP32 ADC: 0-4095)
+const int MQ2_THRESHOLD_MIN = 400;   // Минимальное значение АЦП для MQ-2
+const int MQ2_THRESHOLD_MAX = 3600;  // Максимальное значение АЦП для MQ-2
+const int MQ7_THRESHOLD_MIN = 400;   // Минимальное значение АЦП для MQ-7
+const int MQ7_THRESHOLD_MAX = 3600;  // Максимальное значение АЦП для MQ-7
 
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ ОБЪЕКТОВ ДАТЧИКОВ
@@ -128,11 +130,10 @@ void setup() {
   
   WiFi.begin(ssid, password);
   
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+  unsigned long startAttempt = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 10000) {
     delay(500);
     Serial.print(".");
-    attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
@@ -173,12 +174,12 @@ void loop() {
     
     // Чтение MQ-2 (дым/газ)
     int mq2_raw = analogRead(MQ2_PIN);
-    int mq2_level = map(mq2_raw, 0, MQ2_THRESHOLD, 0, 100);
+    int mq2_level = map(mq2_raw, MQ2_THRESHOLD_MIN, MQ2_THRESHOLD_MAX, 0, 100);
     mq2_level = constrain(mq2_level, 0, 100); // Ограничение 0-100
     
     // Чтение MQ-7 (угарный газ CO)
     int mq7_raw = analogRead(MQ7_PIN);
-    int mq7_level = map(mq7_raw, 0, MQ7_THRESHOLD, 0, 100);
+    int mq7_level = map(mq7_raw, MQ7_THRESHOLD_MIN, MQ7_THRESHOLD_MAX, 0, 100);
     mq7_level = constrain(mq7_level, 0, 100); // Ограничение 0-100
 
     // ----------------------------------------
@@ -247,8 +248,8 @@ void sendDataToServer(float temp, float hum, float press, int co, int gas) {
   jsonPayload += "\"temperature\":" + String(temp, 2) + ",";
   jsonPayload += "\"humidity\":" + String(hum, 2) + ",";
   jsonPayload += "\"pressure\":" + String(press, 2) + ",";
-  jsonPayload += "\"co\":" + String(co) + ",";
-  jsonPayload += "\"gas\":" + String(gas);
+  jsonPayload += "\"smoke\":" + String(gas) + ",";
+  jsonPayload += "\"co\":" + String(co);
   jsonPayload += "}";
   
   Serial.print("JSON: ");
