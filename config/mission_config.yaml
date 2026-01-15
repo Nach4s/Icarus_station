@@ -1,0 +1,198 @@
+# Icarus Station Mission Configuration
+# Все параметры можно изменить 
+
+station:
+  name: "Icarus Station"
+  mission_id: "ICARUS-KB-2025"
+  crew_size: 150000
+  location: "Kuiper Belt Orbit"
+  mission_duration: "80 Earth Years"
+  mission_start: "2025"
+
+environment:
+  temperature:
+    min: 18.0
+    max: 24.0
+    optimal: 21.0
+    unit: "°C"
+    alert_threshold: 2.0
+  
+  oxygen:
+    min: 19.5
+    max: 23.5
+    optimal: 21.0
+    unit: "%"
+    alert_threshold: 1.5
+  
+  co2:
+    min: 0.0
+    max: 0.5
+    optimal: 0.04
+    unit: "%"
+    alert_threshold: 0.2
+  
+  humidity:
+    min: 30.0
+    max: 70.0
+    optimal: 50.0
+    unit: "%"
+    alert_threshold: 10.0
+  
+  co:
+    min: 0.0
+    max: 700.0
+    optimal: 50.0
+    unit: "ppm"
+    alert_threshold: 200.0
+
+power:
+  total_capacity: 274.608462  # MW (274,608,462 W)
+  critical_threshold: 20.0  # %
+  warning_threshold: 40.0  # %
+  
+  # Satellite-based solar power generation (no fusion/RTG systems)
+  satellites:
+    total_count: 465439
+    power_per_satellite: 0.00059  # MW (590 W)
+    critical_threshold: 0.5  # 50% online
+    warning_threshold: 0.8  # 80% online
+    uptime_target: 100.0  # %
+    max_capacity: 274.608462  # MW
+
+  systems:
+    - name: "Agriculture"
+      priority: "critical"
+      power_draw: 10.304462  # MW (10,304,462 W)
+    - name: "Oxygen Production"
+      priority: "critical"
+      power_draw: 15.0  # MW (15,000,000 W)
+    - name: "Lighting"
+      priority: "normal"
+      power_draw: 11.304  # MW (11,304,000 W)
+    - name: "Population Usage"
+      priority: "normal"
+      power_draw: 238.0  # MW (238,000,000 W)
+
+tasks:
+  categories:
+    - "Maintenance"
+    - "Research"
+    - "Exercise"
+    - "Communication"
+    - "Emergency"
+  
+  priorities:
+    - "Critical"
+    - "High"
+    - "Medium"
+    - "Low"
+  
+  default_tasks:
+    - name: "Air filter maintenance"
+      category: "Maintenance"
+      priority: "High"
+      duration: 45
+      frequency: "daily"
+    - name: "Hydroponic check"
+      category: "Maintenance"
+      priority: "Medium"
+      duration: 30
+      frequency: "daily"
+    - name: "Sensor recalibration"
+      category: "Maintenance"
+      priority: "Medium"
+      duration: 60
+      frequency: "weekly"
+    - name: "Communication system test"
+      category: "Communication"
+      priority: "High"
+      duration: 20
+      frequency: "daily"
+
+nutrition:
+  daily_requirements:
+    calories:
+      optimal: 2500
+      unit: "kcal"
+      warning_threshold: 200
+      current_baseline: 2380  # Stable baseline value
+    protein:
+      optimal: 100
+      unit: "g"
+      warning_threshold: 15
+      current_baseline: 85  # Stable baseline value
+    water:
+      optimal: 2.0
+      unit: "L"
+      warning_threshold: 0.3
+      current_baseline: 1.6  # Stable baseline value
+    vitamins:
+      optimal: 100
+      unit: "%"
+      warning_threshold: 10
+      current_baseline: 92  # Stable baseline value
+  
+  meal_schedule:
+    - time: "07:30"
+      meal: "Breakfast"
+      menu: "Quail egg omelet with spinach and wheat bread, strawberries"
+      icon: "🍳"
+    - time: "11:00"
+      meal: "Morning Snack"
+      menu: "Bread, boiled egg, dried vegetables"
+      icon: "🥖"
+    - time: "13:00"
+      meal: "Lunch"
+      menu: "Tilapia with mashed potatoes and tomato-carrot salad"
+      icon: "🐟"
+    - time: "16:00"
+      meal: "Afternoon Snack"
+      menu: "Strawberries, protein bar"
+      icon: "🍓"
+    - time: "19:00"
+      meal: "Dinner"
+      menu: "Stewed rabbit with beans, onions, and herbs"
+      icon: "🥕"
+  
+  storage:
+    - name: "Freeze-dried Meals"
+      icon: "freeze"
+      quantity: 45
+      unit: "packs"
+      daily_consumption: 3
+      critical_days: 5
+    - name: "Protein Bars"
+      icon: "freeze"
+      quantity: 24
+      unit: "bars"
+      daily_consumption: 3
+      critical_days: 3
+    - name: "Water Supply"
+      icon: "water"
+      quantity: 40
+      unit: "L"
+      daily_consumption: 12
+      critical_days: 2
+    - name: "Greens (hydroponic)"
+      icon: "greens"
+      quantity: 0
+      unit: "continuous"
+      daily_consumption: 0
+      critical_days: 0
+  
+  systems:
+    hydroponic_status: "nominal"
+    water_filtration_last_maintenance: 3
+
+alerts:
+  levels:
+    - name: "info"
+      color: "#3b82f6"
+    - name: "warning"
+      color: "#f59e0b"
+    - name: "critical"
+      color: "#ef4444"
+  
+  auto_notify: true
+  sound_enabled: true
+  log_retention_days: 30
