@@ -62,7 +62,7 @@ function App() {
       fetchNutrition()
       fetchAlerts()
       fetchTasks()
-    }, 5000)
+    }, 10000) // Reduced frequency for better performance
 
     return () => {
       clearInterval(interval)

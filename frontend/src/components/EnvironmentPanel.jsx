@@ -106,32 +106,25 @@ const SensorCard = ({ sensorKey, value, status, thresholds }) => {
   }
 
   return (
-    <div className={`
-      glass-card glass-card-hover p-5 relative overflow-hidden
-      ${isCritical ? `animate-pulse ${statusStyles.glow}` : ''}
-      ${isWarning ? statusStyles.glow : ''}
-    `}>
-      {/* Background glow effect */}
-      <div className={`absolute top-0 right-0 w-32 h-32 ${config.bgGlow} rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2`} />
-
-      <div className="relative z-10">
+    <div className={`glass-card glass-card-hover p-4 ${isCritical ? 'border-status-critical' : ''}`}>
+      <div>
         {/* Header with icon and status */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl bg-gradient-to-br ${config.gradient} shadow-lg`}>
-              <Icon className="w-5 h-5 text-white" />
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className={`p-2 rounded-lg bg-gradient-to-br ${config.gradient} shadow-lg flex-shrink-0`}>
+              <Icon className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-white">{config.label}</h3>
-              <span className="text-xs text-gray-500">{config.description}</span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white truncate">{config.label}</h3>
+              <span className="text-xs text-gray-500 truncate block">{config.description}</span>
             </div>
           </div>
 
-          {/* Status badge */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusStyles.bg} border ${statusStyles.border}`}>
-            <span className={`w-2 h-2 rounded-full ${statusStyles.dot} ${isCritical ? 'animate-ping' : ''}`} />
-            <span className={`text-xs font-medium ${statusStyles.color}`}>
-              {statusStyles.label}
+          {/* Status badge - compact */}
+          <div className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full ${statusStyles.bg} border ${statusStyles.border}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot} ${isCritical ? 'animate-ping' : ''}`} />
+            <span className={`text-[10px] font-bold uppercase ${statusStyles.color}`}>
+              {status === 'nominal' ? 'OK' : status === 'warning' ? 'WARN' : status === 'critical' ? 'CRIT' : 'N/A'}
             </span>
           </div>
         </div>

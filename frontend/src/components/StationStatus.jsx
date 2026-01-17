@@ -60,18 +60,15 @@ const StationStatus = ({ status }) => {
   )
 
   return (
-    <div className="mb-8 animate-fade-in">
+    <div className="mb-6">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl glass-card p-8 mb-6">
-        {/* Background glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
+      <div className="rounded-xl glass-card p-6 mb-6">
         <div className="relative z-10">
           {/* Title and status */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Orbit className="w-8 h-8 text-primary animate-float" />
+                <Orbit className="w-6 h-6 text-primary" />
                 <h2 className="heading-display heading-lg text-white">
                   Station Overview
                 </h2>
