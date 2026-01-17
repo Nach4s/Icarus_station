@@ -1,93 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Apple, Droplets, Flame, Pill, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Apple, Droplets, Flame, Pill, Clock, ChevronDown, ChevronUp, Utensils } from 'lucide-react'
 
 const NutritionPanel = ({ nutrition, config }) => {
   const [mealScheduleExpanded, setMealScheduleExpanded] = useState(true)
   const [displayedNutrition, setDisplayedNutrition] = useState(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const lastUpdateTime = useRef(Date.now())
-  
-  // Debug logging
-  console.log('NutritionPanel received:', { nutrition, config })
-  
+
   if (!nutrition) {
     return (
-      <div className="bg-gray-900 rounded-lg border border-gray-700 p-6">
-        <p className="text-red-400">❌ Nutrition data not available</p>
-        <p className="text-gray-500 text-xs mt-2">nutrition: null</p>
-      </div>
-    )
-  }
-  
-  if (!config) {
-    return (
-      <div className="bg-gray-900 rounded-lg border border-gray-700 p-6">
-        <p className="text-red-400">❌ Config data not available</p>
-        <p className="text-gray-500 text-xs mt-2">config: null</p>
-      </div>
-    )
-  }
-  
-  if (!nutrition.requirements) {
-    console.error('NutritionPanel: Missing requirements in nutrition data', nutrition)
-    return (
-      <div className="bg-gray-900 rounded-lg border border-gray-700 p-6">
-        <p className="text-red-400">❌ Nutrition requirements data missing</p>
-        <p className="text-gray-500 text-xs mt-2">Check API response structure</p>
-        <pre className="text-xs text-gray-600 mt-2 overflow-auto">{JSON.stringify(nutrition, null, 2)}</pre>
+      <div className="glass-card p-6 animate-fade-in">
+        <div className="flex items-center justify-center py-8">
+          <Apple className="w-8 h-8 text-primary animate-pulse mr-3" />
+          <p className="text-gray-400">Loading nutrition data...</p>
+        </div>
       </div>
     )
   }
 
-  // Generate stable nutrition values with gentle variation
+  if (!config || !nutrition.requirements) {
+    return (
+      <div className="glass-card p-6">
+        <p className="text-status-critical">Nutrition data unavailable</p>
+      </div>
+    )
+  }
+
   const generateStableValues = (baseRequirements) => {
     if (!baseRequirements) return null
-    
+
     const gently = (current, min, max) => {
-      // Add ±2-3% variation around current value
-      const variation = current * (Math.random() * 0.06 - 0.03) // ±3%
+      const variation = current * (Math.random() * 0.06 - 0.03)
       const newValue = current + variation
-      // Clamp between min and max
       return Math.max(min, Math.min(max, newValue))
     }
-    
+
     return {
       calories: {
         ...baseRequirements.calories,
-        current: Math.round(gently(
-          baseRequirements.calories?.current ?? 2475,
-          2450, // min: 98% of optimal (2500)
-          2500  // max: optimal
-        ))
+        current: Math.round(gently(baseRequirements.calories?.current ?? 2475, 2450, 2500))
       },
       protein: {
         ...baseRequirements.protein,
-        current: parseFloat(gently(
-          baseRequirements.protein?.current ?? 95,
-          90,  // min: 90% of optimal (100)
-          100  // max: optimal
-        ).toFixed(1))
+        current: parseFloat(gently(baseRequirements.protein?.current ?? 95, 90, 100).toFixed(1))
       },
       water: {
         ...baseRequirements.water,
-        current: parseFloat(gently(
-          baseRequirements.water?.current ?? 1.9,
-          1.8, // min: 90% of optimal (2.0)
-          2.0  // max: optimal
-        ).toFixed(2))
+        current: parseFloat(gently(baseRequirements.water?.current ?? 1.9, 1.8, 2.0).toFixed(2))
       },
       vitamins: {
         ...baseRequirements.vitamins,
-        current: Math.round(gently(
-          baseRequirements.vitamins?.current ?? 97,
-          95,  // min: 95% of optimal (100)
-          100  // max: optimal
-        ))
+        current: Math.round(gently(baseRequirements.vitamins?.current ?? 97, 95, 100))
       }
     }
   }
 
-  // Initialize displayed nutrition on first load
   useEffect(() => {
     if (nutrition?.requirements && !displayedNutrition) {
       setDisplayedNutrition(generateStableValues(nutrition.requirements))
@@ -95,180 +62,156 @@ const NutritionPanel = ({ nutrition, config }) => {
     }
   }, [nutrition, displayedNutrition])
 
-  // Update displayed values once per minute
   useEffect(() => {
     if (!nutrition?.requirements) return
 
     const updateInterval = setInterval(() => {
       const now = Date.now()
       const timeSinceLastUpdate = now - lastUpdateTime.current
-      
-      // Update every 60 seconds
+
       if (timeSinceLastUpdate >= 60000) {
-        console.log('Updating nutrition display (60s elapsed)')
         setIsUpdating(true)
-        
-        // Generate new stable values
         const newValues = generateStableValues(displayedNutrition || nutrition.requirements)
-        
-        // Smooth transition
+
         setTimeout(() => {
           setDisplayedNutrition(newValues)
           setIsUpdating(false)
           lastUpdateTime.current = now
         }, 100)
       }
-    }, 1000) // Check every second
+    }, 1000)
 
     return () => clearInterval(updateInterval)
   }, [nutrition, displayedNutrition])
 
-  const getStatusColor = (current, optimal, threshold) => {
-    const diff = optimal - current
-    if (diff > threshold * 1.5) return 'text-red-400'
-    if (diff > threshold) return 'text-yellow-400'
-    return 'text-green-400'
+  const getStatusStyles = (current, optimal, threshold) => {
+    const percentage = (current / optimal) * 100
+    if (percentage >= 95) return { color: 'text-status-nominal', bg: 'bg-status-nominal', label: 'Optimal' }
+    if (percentage >= 80) return { color: 'text-status-warning', bg: 'bg-status-warning', label: 'Warning' }
+    return { color: 'text-status-critical', bg: 'bg-status-critical', label: 'Low' }
   }
 
-  // Use displayed nutrition if available, otherwise fall back to real data
   const requirements = displayedNutrition || nutrition?.requirements
 
   const nutrients = [
-    {
-      name: 'Calories',
-      icon: Flame,
-      data: requirements?.calories,
-      color: 'text-orange-400'
-    },
-    {
-      name: 'Protein',
-      icon: Apple,
-      data: requirements?.protein,
-      color: 'text-green-400'
-    },
-    {
-      name: 'Water',
-      icon: Droplets,
-      data: requirements?.water,
-      color: 'text-blue-400'
-    },
-    {
-      name: 'Vitamins',
-      icon: Pill,
-      data: requirements?.vitamins,
-      color: 'text-purple-400'
-    }
+    { name: 'Calories', icon: Flame, data: requirements?.calories, gradient: 'from-orange-500 to-red-500' },
+    { name: 'Protein', icon: Apple, data: requirements?.protein, gradient: 'from-green-500 to-emerald-500' },
+    { name: 'Water', icon: Droplets, data: requirements?.water, gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Vitamins', icon: Pill, data: requirements?.vitamins, gradient: 'from-purple-500 to-violet-500' }
   ]
+
+  // Circular progress component
+  const CircularProgress = ({ percentage, color, size = 80 }) => {
+    const strokeWidth = 6
+    const radius = (size - strokeWidth) / 2
+    const circumference = radius * 2 * Math.PI
+    const offset = circumference - (percentage / 100) * circumference
+
+    return (
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="url(#gradient)"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700"
+        />
+        <defs>
+          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="100%" stopColor="#818cf8" />
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Nutrient Summary */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 p-6 shadow-xl">
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Apple className="w-6 h-6 text-space-cyan" />
-          Nutrient Summary
-        </h2>
-
-        {/* Nutrient Table */}
-        <div className="overflow-x-auto mb-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 text-gray-400 font-semibold">Parameter</th>
-                <th className="text-center py-3 px-4 text-gray-400 font-semibold">Optimal</th>
-                <th className="text-center py-3 px-4 text-gray-400 font-semibold">Current</th>
-                <th className="text-center py-3 px-4 text-gray-400 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {nutrients.filter(n => n.data).map((nutrient) => {
-                if (!nutrient.data) return null
-                
-                const statusColor = getStatusColor(
-                  nutrient.data?.current ?? 0,
-                  nutrient.data?.optimal ?? 100,
-                  nutrient.data?.warning_threshold ?? 10
-                )
-                const percentage = ((nutrient.data?.current ?? 0) / (nutrient.data?.optimal ?? 100)) * 100
-                const statusEmoji = percentage >= 95 ? '🟢' : percentage >= 80 ? '🟡' : '🔴'
-
-                return (
-                  <tr key={nutrient.name} className="border-b border-gray-800 hover:bg-gray-800/30">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <nutrient.icon className={`w-5 h-5 ${nutrient.color}`} />
-                        <span className="text-white font-medium">{nutrient.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-center py-3 px-4 text-gray-300">
-                      {nutrient.data?.optimal ?? 'N/A'} {nutrient.data?.unit ?? ''}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <span className={`font-bold ${statusColor} transition-all duration-500 ${isUpdating ? 'opacity-70' : 'opacity-100'}`}>
-                        {nutrient.data?.current ?? 'N/A'} {nutrient.data?.unit ?? ''}
-                      </span>
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <span className="text-xl">{statusEmoji}</span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      {/* Nutrient Cards */}
+      <div className="glass-card p-6 animate-slide-up">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-status-nominal/10">
+            <Apple className="w-6 h-6 text-status-nominal" />
+          </div>
+          <div>
+            <h2 className="text-xl font-display font-bold text-white">Nutrition Status</h2>
+            <p className="text-sm text-gray-400">Daily intake monitoring</p>
+          </div>
         </div>
 
-        {/* Progress Bars */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
           {nutrients.filter(n => n.data).map((nutrient) => {
-            if (!nutrient.data) return null
-            
-            const statusColor = getStatusColor(
-              nutrient.data?.current ?? 0,
-              nutrient.data?.optimal ?? 100,
-              nutrient.data?.warning_threshold ?? 10
-            )
             const percentage = ((nutrient.data?.current ?? 0) / (nutrient.data?.optimal ?? 100)) * 100
+            const status = getStatusStyles(nutrient.data?.current ?? 0, nutrient.data?.optimal ?? 100, 10)
+            const Icon = nutrient.icon
 
             return (
-              <div key={`bar-${nutrient.name}`} className={`bg-gray-800/50 rounded-lg p-3 border border-gray-700 transition-all duration-500 ${isUpdating ? 'opacity-70' : 'opacity-100'}`}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-400">{nutrient.name}</span>
-                  <span className="text-xs text-gray-500 transition-all duration-500">{percentage.toFixed(0)}%</span>
+              <div key={nutrient.name} className={`glass-card glass-card-hover p-4 text-center transition-all duration-500 ${isUpdating ? 'opacity-70' : ''}`}>
+                {/* Icon */}
+                <div className={`w-10 h-10 mx-auto mb-3 rounded-xl bg-gradient-to-br ${nutrient.gradient} flex items-center justify-center shadow-lg`}>
+                  <Icon className="w-5 h-5 text-white" />
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
+
+                {/* Value */}
+                <div className={`text-2xl font-display font-bold ${status.color} mb-1`}>
+                  {nutrient.data?.current ?? 'N/A'}
+                </div>
+                <div className="text-xs text-gray-500 mb-2">
+                  / {nutrient.data?.optimal} {nutrient.data?.unit}
+                </div>
+
+                {/* Progress bar */}
+                <div className="progress-bar mb-2">
                   <div
-                    className={`h-2 rounded-full transition-all duration-700 ${
-                      statusColor.includes('red') ? 'bg-red-500' :
-                      statusColor.includes('yellow') ? 'bg-yellow-500' :
-                      'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                    className={`progress-fill ${percentage >= 95 ? 'nominal' : percentage >= 80 ? 'warning' : 'critical'}`}
+                    style={{ width: `${Math.min(100, percentage)}%` }}
                   />
                 </div>
+
+                {/* Label */}
+                <div className="text-xs font-medium text-gray-400">{nutrient.name}</div>
               </div>
             )
           })}
         </div>
 
         {nutrition?.last_check && (
-          <div className="text-sm text-gray-400 border-t border-gray-700 pt-3">
-            Last Nutrition Check: {nutrition.last_check}
+          <div className="mt-4 pt-4 border-t border-white/5 text-center">
+            <span className="text-xs text-gray-500">Last check: {nutrition.last_check}</span>
           </div>
         )}
       </div>
 
       {/* Meal Schedule */}
       {nutrition?.meal_schedule && nutrition.meal_schedule.length > 0 && (
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 p-6 shadow-xl">
-          <div 
+        <div className="glass-card p-6 animate-slide-up">
+          <div
             className="flex items-center justify-between mb-4 cursor-pointer"
             onClick={() => setMealScheduleExpanded(!mealScheduleExpanded)}
           >
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Clock className="w-6 h-6 text-space-cyan" />
-              Meal Schedule (Daily Plan)
-            </h2>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Utensils className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold text-white">Meal Schedule</h2>
+                <p className="text-sm text-gray-400">Daily meal plan</p>
+              </div>
+            </div>
             {mealScheduleExpanded ? (
               <ChevronUp className="w-5 h-5 text-gray-400" />
             ) : (
@@ -277,34 +220,19 @@ const NutritionPanel = ({ nutrition, config }) => {
           </div>
 
           {mealScheduleExpanded && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-semibold">Time</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-semibold">Meal</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-semibold">Menu</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nutrition.meal_schedule.map((meal, index) => (
-                    <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/30">
-                      <td className="py-3 px-4">
-                        <span className="text-white font-mono font-semibold">{meal.time}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{meal.icon}</span>
-                          <span className="text-white font-medium">{meal.meal}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-300">{meal.menu}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {nutrition.meal_schedule.map((meal, index) => (
+                <div key={index} className="glass-card p-4 flex items-center gap-4 hover:border-primary/30 transition-all">
+                  <div className="text-2xl">{meal.icon}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm text-primary">{meal.time}</span>
+                      <span className="text-white font-medium">{meal.meal}</span>
+                    </div>
+                    <p className="text-sm text-gray-400">{meal.menu}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

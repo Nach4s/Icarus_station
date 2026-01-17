@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple } from 'lucide-react'
+import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard } from 'lucide-react'
 import Header from './components/Header'
 import EnvironmentPanel from './components/EnvironmentPanel'
 import PowerPanel from './components/PowerPanel'
@@ -24,7 +24,6 @@ function App() {
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
-    // Fetch initial data
     fetchConfig()
     fetchStationStatus()
     fetchTelemetry()
@@ -33,7 +32,6 @@ function App() {
     fetchAlerts()
     fetchTasks()
 
-    // Setup WebSocket connection
     const socket = io(API_URL)
 
     socket.on('connect', () => {
@@ -47,7 +45,6 @@ function App() {
     })
 
     socket.on('telemetry_update', (data) => {
-      console.log('Telemetry update:', data)
       setTelemetry(data)
     })
 
@@ -56,11 +53,9 @@ function App() {
     })
 
     socket.on('alerts_update', (data) => {
-      console.log('Alerts update:', data)
       setAlerts(data)
     })
 
-    // Request updates every 5 seconds
     const interval = setInterval(() => {
       socket.emit('request_update')
       fetchStationStatus()
@@ -203,101 +198,76 @@ function App() {
     }
   }
 
-  // Count unacknowledged alerts for tab badge
   const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length
   const criticalCount = alerts.filter(a => !a.acknowledged && a.level === 'critical').length
 
+  // Tab configuration
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'environment', label: 'Sensors', icon: Radio },
+    { id: 'nutrition', label: 'Nutrition', icon: Apple },
+    { id: 'power', label: 'Power', icon: Zap },
+    { id: 'tasks', label: 'Tasks', icon: CheckCircle },
+    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unacknowledgedCount, critical: criticalCount > 0 }
+  ]
+
+  // Loading state
   if (!config || !stationStatus) {
     return (
-      <div className="min-h-screen bg-space-dark flex items-center justify-center">
-        <div className="text-center">
-          <Activity className="w-16 h-16 text-space-cyan animate-spin mx-auto mb-4" />
-          <p className="text-xl text-gray-300">Initializing Icarus Station...</p>
+      <div className="min-h-screen bg-space flex items-center justify-center">
+        <div className="starfield" />
+        <div className="text-center relative z-10">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center animate-pulse">
+            <Activity className="w-10 h-10 text-primary" />
+          </div>
+          <h1 className="text-2xl font-display font-bold text-white mb-2">ICARUS STATION</h1>
+          <p className="text-gray-400">Initializing systems...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-space-dark">
+    <div className="min-h-screen bg-space">
+      {/* Starfield background */}
+      <div className="starfield" />
+
+      {/* Header */}
       <Header
         stationName={config.station.name}
         missionId={config.station.mission_id}
         connected={connected}
       />
 
-      <main className="container mx-auto px-4 py-6">
-        {/* Station Status Overview */}
+      <main className="container mx-auto px-4 py-6 relative z-10">
+        {/* Station Status Hero */}
         <StationStatus status={stationStatus} />
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'overview'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <Activity className="inline w-5 h-5 mr-2" />
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('environment')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'environment'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <Radio className="inline w-5 h-5 mr-2" />
-            Sensors
-          </button>
-          <button
-            onClick={() => setActiveTab('nutrition')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'nutrition'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <Apple className="inline w-5 h-5 mr-2" />
-            Nutrition
-          </button>
-          <button
-            onClick={() => setActiveTab('power')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'power'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <Zap className="inline w-5 h-5 mr-2" />
-            Power
-          </button>
-          <button
-            onClick={() => setActiveTab('tasks')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'tasks'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <CheckCircle className="inline w-5 h-5 mr-2" />
-            Tasks
-          </button>
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className={`px-6 py-3 font-medium transition-colors relative whitespace-nowrap ${activeTab === 'alerts'
-                ? 'text-space-cyan border-b-2 border-space-cyan'
-                : 'text-gray-400 hover:text-gray-200'
-              }`}
-          >
-            <AlertTriangle className={`inline w-5 h-5 mr-2 ${criticalCount > 0 ? 'text-red-400 animate-bounce' : ''}`} />
-            Alerts
-            {unacknowledgedCount > 0 && (
-              <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center ${criticalCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'
-                }`}>
-                {unacknowledgedCount}
-              </span>
-            )}
-          </button>
+        <div className="tab-nav mb-6 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`tab-btn relative flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'active' : ''
+                  }`}
+              >
+                <Icon className={`w-4 h-4 ${tab.critical ? 'text-status-critical animate-bounce' : ''}`} />
+                <span>{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className={`
+                    absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full text-xs 
+                    flex items-center justify-center font-bold
+                    ${tab.critical ? 'bg-status-critical animate-pulse' : 'bg-status-warning'}
+                  `}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Content Panels */}
@@ -347,56 +317,42 @@ function App() {
           )}
         </div>
 
-        {/* System Status Summary Footer */}
-        <div className="mt-8 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4">System Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Temperature:</span>
-              <span className={`text-sm font-bold ${telemetry?.statuses?.temperature === 'nominal' ? 'text-green-400' :
-                  telemetry?.statuses?.temperature === 'warning' ? 'text-yellow-400' :
-                    telemetry?.statuses?.temperature === 'critical' ? 'text-red-400' : 'text-gray-400'
-                }`}>
-                {telemetry?.statuses?.temperature === 'nominal' ? 'NOMINAL' :
-                  telemetry?.statuses?.temperature === 'warning' ? 'WARNING' :
-                    telemetry?.statuses?.temperature === 'critical' ? 'CRITICAL' : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Humidity:</span>
-              <span className={`text-sm font-bold ${telemetry?.statuses?.humidity === 'nominal' ? 'text-green-400' :
-                  telemetry?.statuses?.humidity === 'warning' ? 'text-yellow-400' :
-                    telemetry?.statuses?.humidity === 'critical' ? 'text-red-400' : 'text-gray-400'
-                }`}>
-                {telemetry?.statuses?.humidity === 'nominal' ? 'NOMINAL' :
-                  telemetry?.statuses?.humidity === 'warning' ? 'WARNING' :
-                    telemetry?.statuses?.humidity === 'critical' ? 'CRITICAL' : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Gas (MQ-2):</span>
-              <span className={`text-sm font-bold ${telemetry?.statuses?.smoke === 'nominal' ? 'text-green-400' :
-                  telemetry?.statuses?.smoke === 'warning' ? 'text-yellow-400' :
-                    telemetry?.statuses?.smoke === 'critical' ? 'text-red-400' : 'text-gray-400'
-                }`}>
-                {telemetry?.statuses?.smoke === 'nominal' ? 'NOMINAL' :
-                  telemetry?.statuses?.smoke === 'warning' ? 'WARNING' :
-                    telemetry?.statuses?.smoke === 'critical' ? 'CRITICAL' : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">CO (MQ-7):</span>
-              <span className={`text-sm font-bold ${telemetry?.statuses?.co === 'nominal' ? 'text-green-400' :
-                  telemetry?.statuses?.co === 'warning' ? 'text-yellow-400' :
-                    telemetry?.statuses?.co === 'critical' ? 'text-red-400' : 'text-gray-400'
-                }`}>
-                {telemetry?.statuses?.co === 'nominal' ? 'NOMINAL' :
-                  telemetry?.statuses?.co === 'warning' ? 'WARNING' :
-                    telemetry?.statuses?.co === 'critical' ? 'CRITICAL' : 'N/A'}
-              </span>
-            </div>
+        {/* System Status Footer */}
+        <div className="mt-8 glass-card p-6">
+          <h3 className="text-sm font-display font-bold text-white mb-4 uppercase tracking-wider">System Status</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {['temperature', 'humidity', 'smoke', 'co'].map((sensor) => {
+              const status = telemetry?.statuses?.[sensor] || 'unknown'
+              const statusColors = {
+                nominal: 'text-status-nominal bg-status-nominal/10 border-status-nominal/30',
+                warning: 'text-status-warning bg-status-warning/10 border-status-warning/30',
+                critical: 'text-status-critical bg-status-critical/10 border-status-critical/30 animate-pulse',
+                unknown: 'text-gray-400 bg-gray-500/10 border-gray-500/30'
+              }
+              const labels = {
+                temperature: 'Temperature',
+                humidity: 'Humidity',
+                smoke: 'Gas (MQ-2)',
+                co: 'CO (MQ-7)'
+              }
+              return (
+                <div key={sensor} className={`flex items-center justify-between p-3 rounded-lg border ${statusColors[status]}`}>
+                  <span className="text-xs text-gray-400">{labels[sensor]}</span>
+                  <span className="text-xs font-bold uppercase">
+                    {status === 'nominal' ? 'NOMINAL' : status === 'warning' ? 'WARNING' : status === 'critical' ? 'CRITICAL' : 'N/A'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-8 pb-8 text-center">
+          <p className="text-xs text-gray-500">
+            ICARUS STATION • Mission Control Interface • {new Date().getFullYear()}
+          </p>
+        </footer>
       </main>
     </div>
   )

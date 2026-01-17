@@ -7,83 +7,83 @@ const SENSOR_CONFIG = {
     label: 'Temperature',
     icon: Thermometer,
     unit: '°C',
-    color: 'orange',
-    gradient: 'from-orange-500 to-red-500',
-    description: 'DHT22'
+    gradient: 'from-orange-500 to-rose-500',
+    bgGlow: 'bg-orange-500/10',
+    description: 'DHT22 Sensor'
   },
   humidity: {
     label: 'Humidity',
     icon: Droplets,
     unit: '%',
-    color: 'blue',
     gradient: 'from-blue-500 to-cyan-500',
-    description: 'DHT22'
+    bgGlow: 'bg-blue-500/10',
+    description: 'DHT22 Sensor'
   },
   pressure: {
     label: 'Pressure',
     icon: Gauge,
     unit: 'hPa',
-    color: 'purple',
-    gradient: 'from-purple-500 to-indigo-500',
-    description: 'BMP280'
+    gradient: 'from-violet-500 to-purple-500',
+    bgGlow: 'bg-violet-500/10',
+    description: 'BMP280 Sensor'
   },
   smoke: {
     label: 'Smoke/Gas',
     icon: Wind,
     unit: '%',
-    color: 'gray',
-    gradient: 'from-gray-500 to-slate-600',
-    description: 'MQ-2'
+    gradient: 'from-slate-500 to-gray-600',
+    bgGlow: 'bg-slate-500/10',
+    description: 'MQ-2 Sensor'
   },
   co: {
-    label: 'CO (Carbon Monoxide)',
+    label: 'Carbon Monoxide',
     icon: AlertTriangle,
     unit: '%',
-    color: 'red',
     gradient: 'from-red-500 to-rose-600',
-    description: 'MQ-7'
+    bgGlow: 'bg-red-500/10',
+    description: 'MQ-7 Sensor'
   }
 }
 
-// Get status color based on threshold
-const getStatusColor = (status) => {
+// Get status styling
+const getStatusStyles = (status) => {
   switch (status) {
     case 'critical':
-      return 'bg-red-500'
+      return {
+        color: 'text-status-critical',
+        bg: 'bg-status-critical/10',
+        border: 'border-status-critical/50',
+        glow: 'shadow-[0_0_20px_rgba(239,68,68,0.3)]',
+        dot: 'bg-status-critical',
+        label: 'CRITICAL'
+      }
     case 'warning':
-      return 'bg-yellow-500'
+      return {
+        color: 'text-status-warning',
+        bg: 'bg-status-warning/10',
+        border: 'border-status-warning/50',
+        glow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]',
+        dot: 'bg-status-warning',
+        label: 'WARNING'
+      }
     case 'nominal':
-      return 'bg-green-500'
+      return {
+        color: 'text-status-nominal',
+        bg: 'bg-status-nominal/10',
+        border: 'border-status-nominal/30',
+        glow: '',
+        dot: 'bg-status-nominal',
+        label: 'NORMAL'
+      }
     default:
-      return 'bg-gray-500'
-  }
-}
-
-// Get status text
-const getStatusText = (status) => {
-  switch (status) {
-    case 'critical':
-      return 'DANGER'
-    case 'warning':
-      return 'WARNING'
-    case 'nominal':
-      return 'NORMAL'
-    default:
-      return 'N/A'
-  }
-}
-
-// Get border color based on status
-const getBorderColor = (status) => {
-  switch (status) {
-    case 'critical':
-      return 'border-red-500 shadow-red-500/30'
-    case 'warning':
-      return 'border-yellow-500 shadow-yellow-500/30'
-    case 'nominal':
-      return 'border-green-500/30'
-    default:
-      return 'border-gray-700'
+      return {
+        color: 'text-gray-400',
+        bg: 'bg-gray-500/10',
+        border: 'border-gray-500/30',
+        glow: '',
+        dot: 'bg-gray-500',
+        label: 'N/A'
+      }
   }
 }
 
@@ -93,65 +93,76 @@ const SensorCard = ({ sensorKey, value, status, thresholds }) => {
   if (!config) return null
 
   const Icon = config.icon
+  const statusStyles = getStatusStyles(status)
   const isCritical = status === 'critical'
   const isWarning = status === 'warning'
 
+  // Calculate progress percentage for threshold bar
+  let progress = 50
+  if (thresholds && value !== null && value !== undefined) {
+    const range = thresholds.max - thresholds.min
+    progress = ((value - thresholds.min) / range) * 100
+    progress = Math.max(0, Math.min(100, progress))
+  }
+
   return (
     <div className={`
-      relative overflow-hidden rounded-xl border-2 p-4
-      bg-gradient-to-br from-gray-900/90 to-gray-800/90
-      backdrop-blur-sm transition-all duration-300
-      ${getBorderColor(status)}
-      ${isCritical ? 'animate-pulse shadow-lg' : ''}
-      ${isWarning ? 'shadow-md' : ''}
+      glass-card glass-card-hover p-5 relative overflow-hidden
+      ${isCritical ? `animate-pulse ${statusStyles.glow}` : ''}
+      ${isWarning ? statusStyles.glow : ''}
     `}>
-      {/* Status indicator */}
-      <div className={`absolute top-3 right-3 flex items-center gap-2`}>
-        <span className={`text-xs font-bold px-2 py-1 rounded ${isCritical ? 'bg-red-500/20 text-red-400' :
-            isWarning ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-green-500/20 text-green-400'
-          }`}>
-          {getStatusText(status)}
-        </span>
-        <div className={`w-3 h-3 rounded-full ${getStatusColor(status)} ${isCritical ? 'animate-ping' : ''}`} />
-      </div>
+      {/* Background glow effect */}
+      <div className={`absolute top-0 right-0 w-32 h-32 ${config.bgGlow} rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2`} />
 
-      {/* Icon and label */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`p-3 rounded-lg bg-gradient-to-br ${config.gradient}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-white">{config.label}</h3>
-          <span className="text-xs text-gray-400">{config.description}</span>
-        </div>
-      </div>
+      <div className="relative z-10">
+        {/* Header with icon and status */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl bg-gradient-to-br ${config.gradient} shadow-lg`}>
+              <Icon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">{config.label}</h3>
+              <span className="text-xs text-gray-500">{config.description}</span>
+            </div>
+          </div>
 
-      {/* Value */}
-      <div className="text-center py-4">
-        <span className={`text-4xl font-bold ${isCritical ? 'text-red-400' :
-            isWarning ? 'text-yellow-400' :
-              'text-white'
-          }`}>
-          {value !== null && value !== undefined ?
-            (typeof value === 'number' ? value.toFixed(1) : value) :
-            '--'
-          }
-        </span>
-        <span className="text-xl text-gray-400 ml-2">{config.unit}</span>
-      </div>
-
-      {/* Threshold info */}
-      {thresholds && (
-        <div className="mt-2 pt-3 border-t border-gray-700/50">
-          <div className="flex justify-between text-xs text-gray-400">
-            <span>Normal: {thresholds.min} - {thresholds.max}{config.unit}</span>
-            <span className={isCritical ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-green-400'}>
-              ● {status}
+          {/* Status badge */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusStyles.bg} border ${statusStyles.border}`}>
+            <span className={`w-2 h-2 rounded-full ${statusStyles.dot} ${isCritical ? 'animate-ping' : ''}`} />
+            <span className={`text-xs font-medium ${statusStyles.color}`}>
+              {statusStyles.label}
             </span>
           </div>
         </div>
-      )}
+
+        {/* Value display */}
+        <div className="text-center py-4">
+          <span className={`sensor-value ${statusStyles.color}`}>
+            {value !== null && value !== undefined
+              ? (typeof value === 'number' ? value.toFixed(1) : value)
+              : '--'
+            }
+          </span>
+          <span className="sensor-unit">{config.unit}</span>
+        </div>
+
+        {/* Progress bar */}
+        {thresholds && (
+          <div className="mt-2">
+            <div className="progress-bar">
+              <div
+                className={`progress-fill ${status}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-gray-500">
+              <span>{thresholds.min}{config.unit}</span>
+              <span>{thresholds.max}{config.unit}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -161,14 +172,12 @@ function EnvironmentPanel({ telemetry, config, detailed }) {
   const [thresholds, setThresholds] = useState(null)
 
   useEffect(() => {
-    // Fetch thresholds from API
     fetch('/api/thresholds')
       .then(res => res.json())
       .then(data => setThresholds(data))
       .catch(err => console.error('Failed to fetch thresholds:', err))
   }, [])
 
-  // Get status from telemetry or calculate
   const getStatus = (key, value) => {
     if (telemetry?.statuses?.[key]) {
       return telemetry.statuses[key]
@@ -190,7 +199,6 @@ function EnvironmentPanel({ telemetry, config, detailed }) {
     }
   }
 
-  // Get overall environment status
   const getOverallStatus = () => {
     if (!telemetry) return 'unknown'
 
@@ -209,46 +217,42 @@ function EnvironmentPanel({ telemetry, config, detailed }) {
   }
 
   const overallStatus = getOverallStatus()
+  const overallStyles = getStatusStyles(overallStatus)
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 p-6 shadow-xl">
+    <div className="glass-card p-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${overallStatus === 'critical' ? 'bg-red-500/20' :
-              overallStatus === 'warning' ? 'bg-yellow-500/20' :
-                'bg-green-500/20'
-            }`}>
-            <Gauge className={`w-6 h-6 ${overallStatus === 'critical' ? 'text-red-400' :
-                overallStatus === 'warning' ? 'text-yellow-400' :
-                  'text-green-400'
-              }`} />
+          <div className={`p-2 rounded-lg ${overallStyles.bg}`}>
+            <Gauge className={`w-6 h-6 ${overallStyles.color}`} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Environment Sensors</h2>
-            <p className="text-sm text-gray-400">Real-time data from Arduino</p>
+            <h2 className="text-xl font-display font-bold text-white">Environment Sensors</h2>
+            <p className="text-sm text-gray-400">Real-time sensor data from Arduino</p>
           </div>
         </div>
 
         {/* Connection status */}
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${telemetry ? 'bg-green-500/20' : 'bg-red-500/20'
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${telemetry ? 'bg-status-nominal/10 border border-status-nominal/30' : 'bg-status-critical/10 border border-status-critical/30'
           }`}>
           {telemetry ? (
             <>
-              <Wifi className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Arduino Connected</span>
+              <Wifi className="w-4 h-4 text-status-nominal" />
+              <span className="text-sm text-status-nominal font-medium">Connected</span>
             </>
           ) : (
             <>
-              <WifiOff className="w-4 h-4 text-red-400" />
-              <span className="text-sm text-red-400">No Data</span>
+              <WifiOff className="w-4 h-4 text-status-critical" />
+              <span className="text-sm text-status-critical font-medium">No Data</span>
             </>
           )}
         </div>
       </div>
 
       {/* Sensor Grid */}
-      <div className={`grid gap-4 ${detailed ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-3'}`}>
+      <div className={`grid gap-4 stagger-children ${detailed ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-3'
+        }`}>
         {Object.keys(SENSOR_CONFIG).map(key => (
           <SensorCard
             key={key}
@@ -262,8 +266,8 @@ function EnvironmentPanel({ telemetry, config, detailed }) {
 
       {/* Last update */}
       {telemetry?.timestamp && (
-        <div className="mt-4 pt-4 border-t border-gray-700/50 text-center">
-          <span className="text-xs text-gray-500">
+        <div className="mt-6 pt-4 border-t border-white/5 text-center">
+          <span className="text-xs text-gray-500 font-mono">
             Last update: {new Date(telemetry.timestamp).toLocaleTimeString()}
           </span>
         </div>
