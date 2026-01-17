@@ -5,7 +5,7 @@ station:
   mission_id: "ICARUS-2026"
   crew_size: 5000
   location: "Jupiter Orbit"
-  mission_duration: "80 Earth Years"
+  mission_duration: "Unlimited"
   mission_start: "2026"
 
 # =============================================================================

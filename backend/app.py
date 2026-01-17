@@ -7,7 +7,11 @@ from datetime import datetime
 import random
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables from project root
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+from ai_companion import get_ai_companion
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
@@ -440,6 +444,149 @@ def delete_task(task_id):
     global tasks
     tasks = [t for t in tasks if t['id'] != task_id]
     return jsonify({'success': True})
+
+# =============================================================================
+# API ROUTES - AI COMPANION
+# =============================================================================
+
+@app.route('/api/ai/chat', methods=['POST'])
+def ai_chat():
+    """Process chat message with AI Companion"""
+    try:
+        data = request.json
+        message = data.get('message', '')
+        
+        if not message:
+            return jsonify({'success': False, 'error': 'Message required'}), 400
+        
+        # Get current station data
+        if current_telemetry:
+            telemetry = current_telemetry.copy()
+            telemetry['statuses'] = {}
+            for param in SENSOR_THRESHOLDS.keys():
+                if param in telemetry:
+                    telemetry['statuses'][param] = get_sensor_status(telemetry[param], param)
+        else:
+            telemetry = generate_telemetry()
+            telemetry['statuses'] = {}
+            for param in SENSOR_THRESHOLDS.keys():
+                if param in telemetry:
+                    telemetry['statuses'][param] = get_sensor_status(telemetry[param], param)
+        
+        power = generate_power_data()
+        nutrition_data = get_nutrition_data()
+        station_status = get_station_status_data()
+        
+        # Build context and chat
+        ai = get_ai_companion()
+        context = ai.build_context(
+            telemetry=telemetry,
+            alerts=alerts,
+            nutrition=nutrition_data,
+            power=power,
+            tasks=tasks,
+            station_status=station_status
+        )
+        
+        result = ai.chat(message, context)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[AI] Chat error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/context', methods=['GET'])
+def ai_context():
+    """Get current station context (for debugging)"""
+    try:
+        if current_telemetry:
+            telemetry = current_telemetry.copy()
+            telemetry['statuses'] = {}
+            for param in SENSOR_THRESHOLDS.keys():
+                if param in telemetry:
+                    telemetry['statuses'][param] = get_sensor_status(telemetry[param], param)
+        else:
+            telemetry = generate_telemetry()
+            telemetry['statuses'] = {}
+            for param in SENSOR_THRESHOLDS.keys():
+                if param in telemetry:
+                    telemetry['statuses'][param] = get_sensor_status(telemetry[param], param)
+        
+        power = generate_power_data()
+        nutrition_data = get_nutrition_data()
+        station_status = get_station_status_data()
+        
+        ai = get_ai_companion()
+        context = ai.build_context(
+            telemetry=telemetry,
+            alerts=alerts,
+            nutrition=nutrition_data,
+            power=power,
+            tasks=tasks,
+            station_status=station_status
+        )
+        return jsonify(context)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def get_nutrition_data():
+    """Helper to get nutrition data for AI context"""
+    nutrition_config = config['nutrition']
+    requirements = nutrition_config['daily_requirements']
+    return {
+        'requirements': {
+            'calories': {
+                'optimal': requirements['calories']['optimal'],
+                'current': requirements['calories'].get('current_baseline', requirements['calories']['optimal']),
+                'unit': requirements['calories']['unit']
+            },
+            'protein': {
+                'optimal': requirements['protein']['optimal'],
+                'current': requirements['protein'].get('current_baseline', requirements['protein']['optimal']),
+                'unit': requirements['protein']['unit']
+            },
+            'water': {
+                'optimal': requirements['water']['optimal'],
+                'current': requirements['water'].get('current_baseline', requirements['water']['optimal']),
+                'unit': requirements['water']['unit']
+            },
+            'vitamins': {
+                'optimal': requirements['vitamins']['optimal'],
+                'current': requirements['vitamins'].get('current_baseline', requirements['vitamins']['optimal']),
+                'unit': requirements['vitamins']['unit']
+            }
+        }
+    }
+
+def get_station_status_data():
+    """Helper to get station status for AI context"""
+    if current_telemetry:
+        telemetry = current_telemetry.copy()
+    else:
+        telemetry = generate_telemetry()
+    
+    power = generate_power_data()
+    
+    unacknowledged_critical = sum(1 for a in alerts if not a['acknowledged'] and a['level'] == 'critical')
+    unacknowledged_warning = sum(1 for a in alerts if not a['acknowledged'] and a['level'] == 'warning')
+    
+    if unacknowledged_critical > 0:
+        status = 'critical'
+    elif unacknowledged_warning > 0:
+        status = 'warning'
+    elif power['percentage'] < config['power']['warning_threshold']:
+        status = 'warning'
+    else:
+        status = 'nominal'
+    
+    return {
+        'status': status,
+        'station': config['station'],
+        'crew_size': config['station']['crew_size'],
+        'active_alerts': len([a for a in alerts if not a['acknowledged']]),
+        'arduino_connected': current_telemetry is not None
+    }
 
 # =============================================================================
 # API ROUTES - STATION STATUS

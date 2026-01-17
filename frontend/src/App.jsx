@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard } from 'lucide-react'
+import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard, Bot } from 'lucide-react'
 import Header from './components/Header'
 import EnvironmentPanel from './components/EnvironmentPanel'
 import PowerPanel from './components/PowerPanel'
@@ -7,6 +7,7 @@ import TasksPanel from './components/TasksPanel'
 import AlertsPanel from './components/AlertsPanel'
 import StationStatus from './components/StationStatus'
 import NutritionPanel from './components/NutritionPanel'
+import AICompanionPanel from './components/AICompanionPanel'
 import { io } from 'socket.io-client'
 
 // Backend URL configuration
@@ -208,7 +209,8 @@ function App() {
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
     { id: 'power', label: 'Power', icon: Zap },
     { id: 'tasks', label: 'Tasks', icon: CheckCircle },
-    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unacknowledgedCount, critical: criticalCount > 0 }
+    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unacknowledgedCount, critical: criticalCount > 0 },
+    { id: 'ai', label: 'AI', icon: Bot }
   ]
 
   // Loading state
@@ -314,6 +316,10 @@ function App() {
               onAcknowledge={acknowledgeAlert}
               onClearAcknowledged={clearAcknowledgedAlerts}
             />
+          )}
+
+          {activeTab === 'ai' && (
+            <AICompanionPanel />
           )}
         </div>
 
