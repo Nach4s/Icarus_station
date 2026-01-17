@@ -9,6 +9,9 @@ import StationStatus from './components/StationStatus'
 import NutritionPanel from './components/NutritionPanel'
 import { io } from 'socket.io-client'
 
+// Backend URL configuration
+const API_URL = 'http://localhost:5000'
+
 function App() {
   const [stationStatus, setStationStatus] = useState(null)
   const [telemetry, setTelemetry] = useState(null)
@@ -31,8 +34,8 @@ function App() {
     fetchTasks()
 
     // Setup WebSocket connection
-    const socket = io('http://localhost:5000')
-    
+    const socket = io(API_URL)
+
     socket.on('connect', () => {
       setConnected(true)
       console.log('Connected to Icarus Station')
@@ -44,11 +47,17 @@ function App() {
     })
 
     socket.on('telemetry_update', (data) => {
+      console.log('Telemetry update:', data)
       setTelemetry(data)
     })
 
     socket.on('power_update', (data) => {
       setPower(data)
+    })
+
+    socket.on('alerts_update', (data) => {
+      console.log('Alerts update:', data)
+      setAlerts(data)
     })
 
     // Request updates every 5 seconds
@@ -68,7 +77,7 @@ function App() {
 
   const fetchConfig = async () => {
     try {
-      const response = await fetch('/api/config')
+      const response = await fetch(`${API_URL}/api/config`)
       const data = await response.json()
       setConfig(data)
     } catch (error) {
@@ -78,7 +87,7 @@ function App() {
 
   const fetchStationStatus = async () => {
     try {
-      const response = await fetch('/api/station/status')
+      const response = await fetch(`${API_URL}/api/station/status`)
       const data = await response.json()
       setStationStatus(data)
     } catch (error) {
@@ -88,7 +97,7 @@ function App() {
 
   const fetchTelemetry = async () => {
     try {
-      const response = await fetch('/api/telemetry')
+      const response = await fetch(`${API_URL}/api/telemetry`)
       const data = await response.json()
       setTelemetry(data)
     } catch (error) {
@@ -98,7 +107,7 @@ function App() {
 
   const fetchPower = async () => {
     try {
-      const response = await fetch('/api/power')
+      const response = await fetch(`${API_URL}/api/power`)
       const data = await response.json()
       setPower(data)
     } catch (error) {
@@ -108,40 +117,22 @@ function App() {
 
   const fetchNutrition = async () => {
     try {
-      const response = await fetch('/api/nutrition')
+      const response = await fetch(`${API_URL}/api/nutrition`)
       const data = await response.json()
-      console.log('Nutrition API raw response:', data)
-      
-      // Normalize the data structure
       const normalizedNutrition = {
         ...data,
         nutrition: data.nutrition ?? data,
         requirements: data.requirements ?? null
       }
-      
-      console.log('Normalized nutrition data:', normalizedNutrition)
       setNutrition(normalizedNutrition)
     } catch (error) {
       console.error('Error fetching nutrition:', error)
-      // Set mock data for testing
-      setNutrition({
-        requirements: {
-          calories: { optimal: 2500, current: 2380, unit: 'kcal', warning_threshold: 200 },
-          protein: { optimal: 100, current: 85, unit: 'g', warning_threshold: 15 },
-          water: { optimal: 2.0, current: 1.6, unit: 'L', warning_threshold: 0.3 },
-          vitamins: { optimal: 100, current: 92, unit: '%', warning_threshold: 10 }
-        },
-        meal_schedule: [
-          { time: '07:30', meal: 'Breakfast', menu: 'Quail egg omelet', icon: '🍳' }
-        ],
-        last_check: '2 days ago'
-      })
     }
   }
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('/api/alerts')
+      const response = await fetch(`${API_URL}/api/alerts`)
       const data = await response.json()
       setAlerts(data)
     } catch (error) {
@@ -151,7 +142,7 @@ function App() {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch('/api/tasks')
+      const response = await fetch(`${API_URL}/api/tasks`)
       const data = await response.json()
       setTasks(data)
     } catch (error) {
@@ -161,16 +152,25 @@ function App() {
 
   const acknowledgeAlert = async (alertId) => {
     try {
-      await fetch(`/api/alerts/${alertId}/acknowledge`, { method: 'POST' })
+      await fetch(`${API_URL}/api/alerts/${alertId}/acknowledge`, { method: 'POST' })
       fetchAlerts()
     } catch (error) {
       console.error('Error acknowledging alert:', error)
     }
   }
 
+  const clearAcknowledgedAlerts = async () => {
+    try {
+      await fetch(`${API_URL}/api/alerts/clear`, { method: 'POST' })
+      fetchAlerts()
+    } catch (error) {
+      console.error('Error clearing alerts:', error)
+    }
+  }
+
   const updateTask = async (taskId, updates) => {
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await fetch(`${API_URL}/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -183,7 +183,7 @@ function App() {
 
   const createTask = async (taskData) => {
     try {
-      await fetch('/api/tasks', {
+      await fetch(`${API_URL}/api/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)
@@ -196,12 +196,16 @@ function App() {
 
   const deleteTask = async (taskId) => {
     try {
-      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+      await fetch(`${API_URL}/api/tasks/${taskId}`, { method: 'DELETE' })
       fetchTasks()
     } catch (error) {
       console.error('Error deleting task:', error)
     }
   }
+
+  // Count unacknowledged alerts for tab badge
+  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length
+  const criticalCount = alerts.filter(a => !a.acknowledged && a.level === 'critical').length
 
   if (!config || !stationStatus) {
     return (
@@ -216,7 +220,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-space-dark">
-      <Header 
+      <Header
         stationName={config.station.name}
         missionId={config.station.mission_id}
         connected={connected}
@@ -227,74 +231,71 @@ function App() {
         <StationStatus status={stationStatus} />
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-700">
+        <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'overview'
+            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'overview'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
             <Activity className="inline w-5 h-5 mr-2" />
             Overview
           </button>
           <button
             onClick={() => setActiveTab('environment')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'environment'
+            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'environment'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
             <Radio className="inline w-5 h-5 mr-2" />
-            Environment
+            Sensors
           </button>
           <button
             onClick={() => setActiveTab('nutrition')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'nutrition'
+            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'nutrition'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
             <Apple className="inline w-5 h-5 mr-2" />
             Nutrition
           </button>
           <button
             onClick={() => setActiveTab('power')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'power'
+            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'power'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
             <Zap className="inline w-5 h-5 mr-2" />
             Power
           </button>
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'tasks'
+            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${activeTab === 'tasks'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
             <CheckCircle className="inline w-5 h-5 mr-2" />
             Tasks
           </button>
           <button
             onClick={() => setActiveTab('alerts')}
-            className={`px-6 py-3 font-medium transition-colors relative ${
-              activeTab === 'alerts'
+            className={`px-6 py-3 font-medium transition-colors relative whitespace-nowrap ${activeTab === 'alerts'
                 ? 'text-space-cyan border-b-2 border-space-cyan'
                 : 'text-gray-400 hover:text-gray-200'
-            }`}
+              }`}
           >
-            <AlertTriangle className="inline w-5 h-5 mr-2" />
+            <AlertTriangle className={`inline w-5 h-5 mr-2 ${criticalCount > 0 ? 'text-red-400 animate-bounce' : ''}`} />
             Alerts
-            {alerts.filter(a => !a.acknowledged).length > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-nasa-red rounded-full animate-pulse-glow"></span>
+            {unacknowledgedCount > 0 && (
+              <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center ${criticalCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'
+                }`}>
+                {unacknowledgedCount}
+              </span>
             )}
           </button>
         </div>
@@ -306,8 +307,8 @@ function App() {
               <EnvironmentPanel telemetry={telemetry} config={config} />
               <PowerPanel power={power} config={config} />
               <div className="lg:col-span-2">
-                <AlertsPanel 
-                  alerts={alerts.slice(-5)} 
+                <AlertsPanel
+                  alerts={alerts.slice(-5)}
                   onAcknowledge={acknowledgeAlert}
                   compact={true}
                 />
@@ -328,7 +329,7 @@ function App() {
           )}
 
           {activeTab === 'tasks' && (
-            <TasksPanel 
+            <TasksPanel
               tasks={tasks}
               config={config}
               onUpdate={updateTask}
@@ -338,44 +339,60 @@ function App() {
           )}
 
           {activeTab === 'alerts' && (
-            <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
+            <AlertsPanel
+              alerts={alerts}
+              onAcknowledge={acknowledgeAlert}
+              onClearAcknowledged={clearAcknowledgedAlerts}
+            />
           )}
         </div>
 
         {/* System Status Summary Footer */}
         <div className="mt-8 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4">System Status Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h3 className="text-lg font-bold text-white mb-4">System Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Oxygen Systems:</span>
-              <span className={`text-sm font-bold ${
-                telemetry && telemetry.oxygen >= 19.5 && telemetry.oxygen <= 23.5 
-                  ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {telemetry && telemetry.oxygen >= 19.5 && telemetry.oxygen <= 23.5 ? 'NOMINAL' : 'ATTENTION'}
+              <span className="text-sm text-gray-400">Temperature:</span>
+              <span className={`text-sm font-bold ${telemetry?.statuses?.temperature === 'nominal' ? 'text-green-400' :
+                  telemetry?.statuses?.temperature === 'warning' ? 'text-yellow-400' :
+                    telemetry?.statuses?.temperature === 'critical' ? 'text-red-400' : 'text-gray-400'
+                }`}>
+                {telemetry?.statuses?.temperature === 'nominal' ? 'NOMINAL' :
+                  telemetry?.statuses?.temperature === 'warning' ? 'WARNING' :
+                    telemetry?.statuses?.temperature === 'critical' ? 'CRITICAL' : 'N/A'}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Temperature Control:</span>
-              <span className={`text-sm font-bold ${
-                telemetry && telemetry.temperature >= 18 && telemetry.temperature <= 24 
-                  ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {telemetry && telemetry.temperature >= 18 && telemetry.temperature <= 24 ? 'NOMINAL' : 'ATTENTION'}
+              <span className="text-sm text-gray-400">Humidity:</span>
+              <span className={`text-sm font-bold ${telemetry?.statuses?.humidity === 'nominal' ? 'text-green-400' :
+                  telemetry?.statuses?.humidity === 'warning' ? 'text-yellow-400' :
+                    telemetry?.statuses?.humidity === 'critical' ? 'text-red-400' : 'text-gray-400'
+                }`}>
+                {telemetry?.statuses?.humidity === 'nominal' ? 'NOMINAL' :
+                  telemetry?.statuses?.humidity === 'warning' ? 'WARNING' :
+                    telemetry?.statuses?.humidity === 'critical' ? 'CRITICAL' : 'N/A'}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
-              <span className="text-sm text-gray-400">Nutrient Balance:</span>
-              <span className={`text-sm font-bold ${
-                nutrition && nutrition.requirements && 
-                nutrition.requirements.calories.current >= nutrition.requirements.calories.optimal - 200 &&
-                nutrition.requirements.protein.current >= nutrition.requirements.protein.optimal - 15
-                  ? 'text-green-400' : 'text-yellow-400'
-              }`}>
-                {nutrition && nutrition.requirements && 
-                nutrition.requirements.calories.current >= nutrition.requirements.calories.optimal - 200 &&
-                nutrition.requirements.protein.current >= nutrition.requirements.protein.optimal - 15
-                  ? 'NOMINAL' : 'ATTENTION'}
+              <span className="text-sm text-gray-400">Gas (MQ-2):</span>
+              <span className={`text-sm font-bold ${telemetry?.statuses?.smoke === 'nominal' ? 'text-green-400' :
+                  telemetry?.statuses?.smoke === 'warning' ? 'text-yellow-400' :
+                    telemetry?.statuses?.smoke === 'critical' ? 'text-red-400' : 'text-gray-400'
+                }`}>
+                {telemetry?.statuses?.smoke === 'nominal' ? 'NOMINAL' :
+                  telemetry?.statuses?.smoke === 'warning' ? 'WARNING' :
+                    telemetry?.statuses?.smoke === 'critical' ? 'CRITICAL' : 'N/A'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded border border-gray-700">
+              <span className="text-sm text-gray-400">CO (MQ-7):</span>
+              <span className={`text-sm font-bold ${telemetry?.statuses?.co === 'nominal' ? 'text-green-400' :
+                  telemetry?.statuses?.co === 'warning' ? 'text-yellow-400' :
+                    telemetry?.statuses?.co === 'critical' ? 'text-red-400' : 'text-gray-400'
+                }`}>
+                {telemetry?.statuses?.co === 'nominal' ? 'NOMINAL' :
+                  telemetry?.statuses?.co === 'warning' ? 'WARNING' :
+                    telemetry?.statuses?.co === 'critical' ? 'CRITICAL' : 'N/A'}
               </span>
             </div>
           </div>

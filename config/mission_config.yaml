@@ -1,78 +1,100 @@
 # Icarus Station Mission Configuration
-# Все параметры можно изменить 
 
 station:
   name: "Icarus Station"
-  mission_id: "ICARUS-KB-2025"
+  mission_id: "ICARUS-2026"
   crew_size: 150000
-  location: "Kuiper Belt Orbit"
+  location: "Jupiter Orbit"
   mission_duration: "80 Earth Years"
-  mission_start: "2025"
+  mission_start: "2026"
 
+# =============================================================================
+# ENVIRONMENT SENSORS - Real Arduino Sensors
+# =============================================================================
 environment:
+  # DHT22 (AM2302) - Temperature
   temperature:
-    min: 18.0
-    max: 24.0
-    optimal: 21.0
+    min: 15.0
+    max: 35.0
+    optimal: 22.0
     unit: "°C"
-    alert_threshold: 2.0
+    alert_threshold: 5.0
+    critical_threshold: 10.0
+    sensor: "DHT22"
   
-  oxygen:
-    min: 19.5
-    max: 23.5
-    optimal: 21.0
-    unit: "%"
-    alert_threshold: 1.5
-  
-  co2:
-    min: 0.0
-    max: 0.5
-    optimal: 0.04
-    unit: "%"
-    alert_threshold: 0.2
-  
+  # DHT22 (AM2302) - Humidity
   humidity:
     min: 30.0
     max: 70.0
     optimal: 50.0
     unit: "%"
-    alert_threshold: 10.0
+    alert_threshold: 15.0
+    critical_threshold: 25.0
+    sensor: "DHT22"
   
+  # BMP280 - Atmospheric Pressure
+  pressure:
+    min: 950.0
+    max: 1050.0
+    optimal: 1013.25
+    unit: "hPa"
+    alert_threshold: 30.0
+    critical_threshold: 50.0
+    sensor: "BMP280"
+  
+  # MQ-2 - Smoke/Gas Detector
+  smoke:
+    min: 0
+    max: 30
+    optimal: 0
+    unit: "%"
+    alert_threshold: 20
+    critical_threshold: 40
+    sensor: "MQ-2"
+  
+  # MQ-7 - Carbon Monoxide (CO) Detector
   co:
-    min: 0.0
-    max: 700.0
-    optimal: 50.0
-    unit: "ppm"
-    alert_threshold: 200.0
+    min: 0
+    max: 30
+    optimal: 0
+    unit: "%"
+    alert_threshold: 20
+    critical_threshold: 40
+    sensor: "MQ-7"
 
+# =============================================================================
+# POWER SYSTEM
+# =============================================================================
 power:
-  total_capacity: 274.608462  # MW (274,608,462 W)
-  critical_threshold: 20.0  # %
-  warning_threshold: 40.0  # %
+  total_capacity: 274.608462  # MW
+  critical_threshold: 20.0
+  warning_threshold: 40.0
   
-  # Satellite-based solar power generation (no fusion/RTG systems)
   satellites:
     total_count: 465439
-    power_per_satellite: 0.00059  # MW (590 W)
-    critical_threshold: 0.5  # 50% online
-    warning_threshold: 0.8  # 80% online
-    uptime_target: 100.0  # %
-    max_capacity: 274.608462  # MW
+    power_per_satellite: 0.00059
+    critical_threshold: 0.5
+    warning_threshold: 0.8
+    uptime_target: 100.0
+    max_capacity: 274.608462
 
   systems:
     - name: "Agriculture"
       priority: "critical"
-      power_draw: 10.304462  # MW (10,304,462 W)
+      power_draw: 10.304462
     - name: "Oxygen Production"
       priority: "critical"
-      power_draw: 15.0  # MW (15,000,000 W)
+      power_draw: 15.0
     - name: "Lighting"
       priority: "normal"
-      power_draw: 11.304  # MW (11,304,000 W)
+      power_draw: 11.304
     - name: "Population Usage"
       priority: "normal"
-      power_draw: 238.0  # MW (238,000,000 W)
+      power_draw: 238.0
 
+# =============================================================================
+# TASKS
+# =============================================================================
 tasks:
   categories:
     - "Maintenance"
@@ -109,28 +131,31 @@ tasks:
       duration: 20
       frequency: "daily"
 
+# =============================================================================
+# NUTRITION
+# =============================================================================
 nutrition:
   daily_requirements:
     calories:
       optimal: 2500
       unit: "kcal"
       warning_threshold: 200
-      current_baseline: 2380  # Stable baseline value
+      current_baseline: 2380
     protein:
       optimal: 100
       unit: "g"
       warning_threshold: 15
-      current_baseline: 85  # Stable baseline value
+      current_baseline: 85
     water:
       optimal: 2.0
       unit: "L"
       warning_threshold: 0.3
-      current_baseline: 1.6  # Stable baseline value
+      current_baseline: 1.6
     vitamins:
       optimal: 100
       unit: "%"
       warning_threshold: 10
-      current_baseline: 92  # Stable baseline value
+      current_baseline: 92
   
   meal_schedule:
     - time: "07:30"
@@ -184,6 +209,9 @@ nutrition:
     hydroponic_status: "nominal"
     water_filtration_last_maintenance: 3
 
+# =============================================================================
+# ALERTS
+# =============================================================================
 alerts:
   levels:
     - name: "info"
