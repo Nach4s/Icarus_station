@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard, Bot } from 'lucide-react'
+import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard, Bot, X, MessageCircle } from 'lucide-react'
 import Header from './components/Header'
 import EnvironmentPanel from './components/EnvironmentPanel'
 import PowerPanel from './components/PowerPanel'
@@ -23,6 +23,7 @@ function App() {
   const [config, setConfig] = useState(null)
   const [connected, setConnected] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [aiChatOpen, setAiChatOpen] = useState(false)
 
   useEffect(() => {
     fetchConfig()
@@ -202,15 +203,14 @@ function App() {
   const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length
   const criticalCount = alerts.filter(a => !a.acknowledged && a.level === 'critical').length
 
-  // Tab configuration
+  // Tab configuration (without AI - it's now a floating button)
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'environment', label: 'Sensors', icon: Radio },
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
     { id: 'power', label: 'Power', icon: Zap },
     { id: 'tasks', label: 'Tasks', icon: CheckCircle },
-    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unacknowledgedCount, critical: criticalCount > 0 },
-    { id: 'ai', label: 'AI', icon: Bot }
+    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unacknowledgedCount, critical: criticalCount > 0 }
   ]
 
   // Loading state
@@ -317,10 +317,6 @@ function App() {
               onClearAcknowledged={clearAcknowledgedAlerts}
             />
           )}
-
-          {activeTab === 'ai' && (
-            <AICompanionPanel />
-          )}
         </div>
 
         {/* System Status Footer */}
@@ -360,6 +356,58 @@ function App() {
           </p>
         </footer>
       </main>
+
+      {/* Floating AI Button */}
+      <button
+        onClick={() => setAiChatOpen(true)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-cyan-600 
+                   shadow-lg shadow-primary/30 flex items-center justify-center
+                   hover:scale-110 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300
+                   animate-pulse hover:animate-none"
+        title="AI Companion"
+      >
+        <Bot className="w-7 h-7 text-white" />
+      </button>
+
+      {/* AI Chat Modal */}
+      {aiChatOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setAiChatOpen(false)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl 
+                          bg-space border border-white/10 shadow-2xl shadow-primary/20
+                          animate-in slide-in-from-bottom-4 duration-300">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <Bot className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold text-white">AI Companion</h2>
+                  <p className="text-xs text-gray-400">Station analysis & recommendations</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAiChatOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* AI Panel Content */}
+            <div className="overflow-y-auto max-h-[calc(80vh-80px)]">
+              <AICompanionPanel embedded={true} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

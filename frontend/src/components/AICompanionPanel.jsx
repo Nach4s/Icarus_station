@@ -4,11 +4,11 @@ import { Bot, Send, Loader2, AlertTriangle, CheckCircle, AlertCircle, Sparkles }
 
 const API_URL = 'http://localhost:5000'
 
-const AICompanionPanel = () => {
+const AICompanionPanel = ({ embedded = false }) => {
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
-            content: 'Hello! I\'m the Icarus Station AI Companion. I can help you analyze station status, sensors, crew nutrition, and safety systems. Ask me anything!'
+            content: "Hello! I'm the Icarus Station AI Companion. I can help you analyze station status, sensors, crew nutrition, and safety systems. Ask me anything!"
         }
     ])
     const [input, setInput] = useState('')
@@ -115,25 +115,27 @@ const AICompanionPanel = () => {
     ]
 
     return (
-        <div className="glass-card p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Bot className="w-6 h-6 text-primary" />
+        <div className={embedded ? "p-4" : "glass-card p-6"}>
+            {/* Header - only show if not embedded */}
+            {!embedded && (
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                            <Bot className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-display font-bold text-white">AI Companion</h2>
+                            <p className="text-sm text-gray-400">Station analysis & recommendations</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-display font-bold text-white">AI Companion</h2>
-                        <p className="text-sm text-gray-400">Station analysis & recommendations</p>
-                    </div>
-                </div>
 
-                {/* Station Status Indicator */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStatusColor()}`}>
-                    {getStatusIcon()}
-                    <span className="text-sm font-bold">{getStatusText()}</span>
+                    {/* Station Status Indicator */}
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStatusColor()}`}>
+                        {getStatusIcon()}
+                        <span className="text-sm font-bold">{getStatusText()}</span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -237,11 +239,6 @@ const AICompanionPanel = () => {
                     )}
                 </button>
             </div>
-
-            {/* Footer note */}
-            <p className="text-xs text-gray-500 text-center mt-4">
-                Powered by OpenAI. Add OPENAI_API_KEY to backend .env for full functionality.
-            </p>
         </div>
     )
 }
