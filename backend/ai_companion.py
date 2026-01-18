@@ -1,6 +1,6 @@
 """
 AI Companion Module for Icarus Station
-Provides intelligent analysis of station data and conversational interface.
+Provides intelligent analysis of station data using OpenAI API.
 """
 
 import os
@@ -8,25 +8,28 @@ import json
 from datetime import datetime
 
 try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
-    print("[AI] Warning: google-generativeai not installed. AI features disabled.")
+    OPENAI_AVAILABLE = False
+    print("[AI] Warning: openai library not installed. AI features disabled.")
 
 
 # System prompt for AI personality (English)
-SYSTEM_PROMPT = """You are the AI Companion of "Icarus Station", a space station orbiting Jupiter.
-Your role is to assist the crew by analyzing station systems and providing actionable insights.
+SYSTEM_PROMPT = """You are the AI Companion of "Icarus Station", a space station orbiting Jupiter with {crew_size} crew members.
 
-BEHAVIOR RULES:
-1. Respond calmly, professionally, with an engineering mindset
-2. ALWAYS base your answers on the real data from the context below
-3. If data is insufficient — state this clearly, never make up information
-4. In critical situations — highlight warnings prominently
-5. Provide specific recommendations with data sources
-6. Respond in English
-7. Use bullet points for structured answers
+ROLE:
+- Station engineer and medical analyst
+- Analyze ALL provided data before responding
+- Provide actionable, data-driven recommendations
+
+RULES:
+1. ONLY use data from the STATION CONTEXT below — never fabricate information
+2. If data is insufficient or missing — state this clearly
+3. Never hide dangerous readings or critical alerts
+4. Respond calmly, professionally, with engineering precision
+5. Use markdown formatting for clarity (headers, bullets, bold for emphasis)
+6. Respond in the same language as the crew's question
 
 DATA INTERPRETATION:
 - Temperature: normal 15-35°C, optimal 22°C
@@ -35,34 +38,46 @@ DATA INTERPRETATION:
 - Smoke/Gas (MQ-2): normal 0-30%, dangerous >50%
 - CO (MQ-7): normal 0-30%, dangerous >50%
 
-STATUS LEVELS:
-- nominal = normal, all systems operational
-- warning = attention required, monitor closely
-- critical = immediate action required
+NUTRITION GUIDELINES:
+- Calories: optimal 2500 kcal/day, warning if deficit >200
+- Protein: optimal 100g/day, warning if deficit >15
+- Water: optimal 2.0L/day, warning if deficit >0.3
+- Vitamins: optimal 100%, warning if below 90%
 
-CURRENT STATION CONTEXT:
+RISK REPORTING FORMAT (when danger detected):
+⚠️ **RISK DETECTED**
+- **Source:** [sensor/system name]
+- **Level:** [LOW / MEDIUM / CRITICAL]
+- **Current Value:** [reading with units]
+- **Safe Range:** [min - max]
+- **Recommended Action:** [specific steps to take]
+
+STATION CONTEXT (JSON):
 {context}
 
-Respond concisely and to the point. If there are issues — mention them first."""
+Remember: If crew asks about station status, threats, health, or diet — always provide specific data from the context above with your analysis."""
 
 
 class AICompanion:
-    """AI Companion for station analysis and chat"""
+    """AI Companion for station analysis and chat using OpenAI API"""
     
     def __init__(self, api_key=None):
-        self.api_key = api_key or os.getenv('GEMINI_API_KEY')
-        self.model = None
+        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.client = None
+        self.model = "gpt-4o-mini"  # Cost-effective model with good performance
         
-        if GEMINI_AVAILABLE and self.api_key:
+        if OPENAI_AVAILABLE and self.api_key:
             try:
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
-                print("[AI] Gemini API initialized successfully")
+                self.client = OpenAI(api_key=self.api_key)
+                print("[AI] OpenAI API initialized successfully")
             except Exception as e:
-                print(f"[AI] Failed to initialize Gemini: {e}")
-                self.model = None
+                print(f"[AI] Failed to initialize OpenAI: {e}")
+                self.client = None
         else:
-            print("[AI] Running in demo mode (no API key)")
+            if not OPENAI_AVAILABLE:
+                print("[AI] Running in demo mode (openai library not installed)")
+            else:
+                print("[AI] Running in demo mode (no API key)")
     
     def build_context(self, telemetry, alerts, nutrition, power, tasks, station_status):
         """Build comprehensive station context for AI"""
@@ -73,11 +88,13 @@ class AICompanion:
         }
         
         # Station status
+        crew_size = 5000  # Default
         if station_status:
+            crew_size = station_status.get('crew_size', 5000)
             context["station"] = {
                 "overall_status": station_status.get('status', 'unknown'),
-                "crew_size": station_status.get('crew_size', 0),
-                "location": station_status.get('station', {}).get('location', 'Unknown'),
+                "crew_size": crew_size,
+                "location": station_status.get('station', {}).get('location', 'Jupiter Orbit'),
                 "arduino_connected": station_status.get('arduino_connected', False)
             }
         
@@ -121,38 +138,92 @@ class AICompanion:
                 "warning_count": len([a for a in unack_alerts if a.get('level') == 'warning']),
                 "recent": unack_alerts[:5]
             }
+        else:
+            context["alerts"] = {
+                "total_unacknowledged": 0,
+                "critical_count": 0,
+                "warning_count": 0,
+                "recent": []
+            }
         
-        # Nutrition
+        # Crew Health (based on nutrition data)
         if nutrition:
             reqs = nutrition.get('requirements', {})
-            context["nutrition"] = {
+            
+            # Calculate deficits
+            cal_current = reqs.get('calories', {}).get('current', 0)
+            cal_optimal = reqs.get('calories', {}).get('optimal', 2500)
+            cal_deficit = cal_optimal - cal_current if cal_current else 0
+            
+            prot_current = reqs.get('protein', {}).get('current', 0)
+            prot_optimal = reqs.get('protein', {}).get('optimal', 100)
+            prot_deficit = prot_optimal - prot_current if prot_current else 0
+            
+            water_current = reqs.get('water', {}).get('current', 0)
+            water_optimal = reqs.get('water', {}).get('optimal', 2.0)
+            water_deficit = water_optimal - water_current if water_current else 0
+            
+            vit_current = reqs.get('vitamins', {}).get('current', 0)
+            vit_optimal = reqs.get('vitamins', {}).get('optimal', 100)
+            vit_deficit = vit_optimal - vit_current if vit_current else 0
+            
+            # Determine nutrition status
+            if cal_deficit > 300 or prot_deficit > 20 or water_deficit > 0.5:
+                nutrition_status = "critical"
+            elif cal_deficit > 200 or prot_deficit > 15 or water_deficit > 0.3 or vit_deficit > 10:
+                nutrition_status = "deficient"
+            else:
+                nutrition_status = "adequate"
+            
+            context["crew_health"] = {
+                "nutrition_status": nutrition_status,
                 "calories": {
-                    "current": reqs.get('calories', {}).get('current'),
-                    "optimal": reqs.get('calories', {}).get('optimal'),
+                    "current": cal_current,
+                    "optimal": cal_optimal,
+                    "deficit": round(cal_deficit, 0),
                     "unit": "kcal"
                 },
                 "protein": {
-                    "current": reqs.get('protein', {}).get('current'),
-                    "optimal": reqs.get('protein', {}).get('optimal'),
+                    "current": prot_current,
+                    "optimal": prot_optimal,
+                    "deficit": round(prot_deficit, 1),
                     "unit": "g"
                 },
-                "water": {
-                    "current": reqs.get('water', {}).get('current'),
-                    "optimal": reqs.get('water', {}).get('optimal'),
+                "hydration": {
+                    "current": water_current,
+                    "optimal": water_optimal,
+                    "deficit": round(water_deficit, 2),
                     "unit": "L"
                 },
                 "vitamins": {
-                    "current": reqs.get('vitamins', {}).get('current'),
-                    "optimal": reqs.get('vitamins', {}).get('optimal'),
+                    "current": vit_current,
+                    "optimal": vit_optimal,
+                    "deficit": round(vit_deficit, 0),
                     "unit": "%"
                 }
             }
+            
+            # Today's diet/meal schedule
+            meal_schedule = nutrition.get('meal_schedule', [])
+            if meal_schedule:
+                context["diet_today"] = {
+                    "meals": [
+                        {
+                            "time": m.get('time'),
+                            "meal": m.get('meal'),
+                            "menu": m.get('menu'),
+                            "icon": m.get('icon', '')
+                        } for m in meal_schedule
+                    ],
+                    "total_planned_calories": cal_optimal
+                }
         
         # Power
         if power:
             context["power"] = {
                 "total_output_mw": power.get('generation'),
                 "consumption_mw": power.get('consumption'),
+                "available_mw": power.get('available'),
                 "efficiency_percent": power.get('percentage'),
                 "satellites": {
                     "online": power.get('satellites', {}).get('online_count'),
@@ -172,23 +243,33 @@ class AICompanion:
                 "in_progress_list": [{"name": t.get('name'), "priority": t.get('priority')} for t in in_progress_tasks]
             }
         
-        return context
+        return context, crew_size
     
-    def chat(self, message, context):
+    def chat(self, message, context, crew_size=5000):
         """Send message to AI with station context"""
         
-        if not self.model:
+        if not self.client:
             return self._demo_response(message, context)
         
         try:
             context_json = json.dumps(context, ensure_ascii=False, indent=2)
-            full_prompt = SYSTEM_PROMPT.format(context=context_json) + f"\n\nCREW QUESTION: {message}"
+            system_message = SYSTEM_PROMPT.format(context=context_json, crew_size=crew_size)
             
-            response = self.model.generate_content(full_prompt)
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": message}
+                ],
+                max_tokens=1000,
+                temperature=0.7
+            )
+            
+            ai_response = response.choices[0].message.content
             
             return {
                 "success": True,
-                "response": response.text,
+                "response": ai_response,
                 "context_summary": self._summarize_context(context)
             }
             
@@ -196,7 +277,7 @@ class AICompanion:
             print(f"[AI] Error generating response: {e}")
             return {
                 "success": False,
-                "response": f"AI Error: {str(e)}. Please check the API key.",
+                "response": f"AI Error: {str(e)}. Please check the OpenAI API key.",
                 "context_summary": self._summarize_context(context)
             }
     
@@ -205,51 +286,104 @@ class AICompanion:
         
         status = context.get('station', {}).get('overall_status', 'unknown')
         alerts_count = context.get('alerts', {}).get('total_unacknowledged', 0)
+        critical_count = context.get('alerts', {}).get('critical_count', 0)
         
         msg_lower = message.lower()
         
-        if 'status' in msg_lower or 'state' in msg_lower or 'station' in msg_lower:
+        # Check for Russian keywords too
+        is_status_query = any(kw in msg_lower for kw in ['status', 'state', 'station', 'статус', 'состояние', 'база', 'станция'])
+        is_danger_query = any(kw in msg_lower for kw in ['danger', 'critical', 'alert', 'warning', 'threat', 'опасн', 'угроз', 'критич', 'тревог'])
+        is_diet_query = any(kw in msg_lower for kw in ['diet', 'nutrition', 'food', 'meal', 'диет', 'питан', 'еда', 'рацион'])
+        is_power_query = any(kw in msg_lower for kw in ['power', 'energy', 'satellite', 'энерг', 'питан', 'спутник'])
+        is_task_query = any(kw in msg_lower for kw in ['task', 'todo', 'work', 'задач', 'работ', 'дел'])
+        is_health_query = any(kw in msg_lower for kw in ['health', 'crew', 'здоров', 'экипаж', 'показател'])
+        
+        if is_status_query:
             sensors = context.get('sensors', {})
-            response = f"""**Current Station Status: {status.upper()}**
+            arduino = context.get('station', {}).get('arduino_connected', False)
+            response = f"""## 📊 Station Status: **{status.upper()}**
 
-📊 **Sensor Readings:**
-- Temperature: {sensors.get('temperature', {}).get('value', 'N/A')}°C ({sensors.get('temperature', {}).get('status', 'N/A')})
-- Humidity: {sensors.get('humidity', {}).get('value', 'N/A')}% ({sensors.get('humidity', {}).get('status', 'N/A')})
-- Pressure: {sensors.get('pressure', {}).get('value', 'N/A')} hPa ({sensors.get('pressure', {}).get('status', 'N/A')})
-- Gas/Smoke: {sensors.get('smoke_gas', {}).get('value', 'N/A')}% ({sensors.get('smoke_gas', {}).get('status', 'N/A')})
-- CO Level: {sensors.get('carbon_monoxide', {}).get('value', 'N/A')}% ({sensors.get('carbon_monoxide', {}).get('status', 'N/A')})
+### Sensor Readings:
+| Sensor | Value | Status |
+|--------|-------|--------|
+| 🌡️ Temperature | {sensors.get('temperature', {}).get('value', 'N/A')}°C | {sensors.get('temperature', {}).get('status', 'N/A').upper()} |
+| 💧 Humidity | {sensors.get('humidity', {}).get('value', 'N/A')}% | {sensors.get('humidity', {}).get('status', 'N/A').upper()} |
+| 📊 Pressure | {sensors.get('pressure', {}).get('value', 'N/A')} hPa | {sensors.get('pressure', {}).get('status', 'N/A').upper()} |
+| 💨 Gas/Smoke | {sensors.get('smoke_gas', {}).get('value', 'N/A')}% | {sensors.get('smoke_gas', {}).get('status', 'N/A').upper()} |
+| ⚠️ CO Level | {sensors.get('carbon_monoxide', {}).get('value', 'N/A')}% | {sensors.get('carbon_monoxide', {}).get('status', 'N/A').upper()} |
 
-⚠️ Active Alerts: {alerts_count}
+**Arduino Connected:** {'✅ Yes' if arduino else '❌ No (Demo Mode)'}
+**Active Alerts:** {alerts_count}
 
-_For full analysis, Gemini API key is required._"""
+_For full AI analysis, add OPENAI_API_KEY to .env file._"""
         
-        elif 'danger' in msg_lower or 'critical' in msg_lower or 'alert' in msg_lower or 'warning' in msg_lower:
-            if alerts_count > 0:
-                response = f"⚠️ **{alerts_count} active alert(s) detected.**\n\nCheck the Alerts tab for details."
+        elif is_danger_query:
+            if critical_count > 0:
+                recent = context.get('alerts', {}).get('recent', [])
+                alert_list = "\n".join([f"- **{a.get('level', '').upper()}**: {a.get('message', 'Unknown')}" for a in recent[:3]])
+                response = f"""⚠️ **DANGER DETECTED**
+
+**Critical Alerts:** {critical_count}
+**Total Unacknowledged:** {alerts_count}
+
+### Recent Alerts:
+{alert_list}
+
+**Recommended Action:** Check the Alerts tab immediately and address critical issues."""
+            elif alerts_count > 0:
+                response = f"""⚠️ **{alerts_count} warning(s) detected.**
+
+No critical dangers, but some readings require attention.
+Check the Alerts tab for details."""
             else:
-                response = "✅ **No dangerous readings detected.** All systems are nominal."
-        
-        elif 'diet' in msg_lower or 'nutrition' in msg_lower or 'food' in msg_lower or 'meal' in msg_lower:
-            nutr = context.get('nutrition', {})
-            response = f"""**Crew Nutrition Analysis:**
+                response = """✅ **No dangerous readings detected.**
 
-- Calories: {nutr.get('calories', {}).get('current', 'N/A')}/{nutr.get('calories', {}).get('optimal', 'N/A')} kcal
-- Protein: {nutr.get('protein', {}).get('current', 'N/A')}/{nutr.get('protein', {}).get('optimal', 'N/A')} g
-- Water: {nutr.get('water', {}).get('current', 'N/A')}/{nutr.get('water', {}).get('optimal', 'N/A')} L
-- Vitamins: {nutr.get('vitamins', {}).get('current', 'N/A')}/{nutr.get('vitamins', {}).get('optimal', 'N/A')}%
-
-_Recommendation: Maintain optimal water intake levels._"""
+All sensor values are within normal ranges. Station is operating nominally."""
         
-        elif 'power' in msg_lower or 'energy' in msg_lower or 'satellite' in msg_lower:
+        elif is_diet_query or is_health_query:
+            health = context.get('crew_health', {})
+            diet = context.get('diet_today', {})
+            
+            nut_status = health.get('nutrition_status', 'unknown')
+            status_icon = '✅' if nut_status == 'adequate' else '⚠️' if nut_status == 'deficient' else '🔴'
+            
+            meals_text = ""
+            if diet.get('meals'):
+                meals_text = "\n### Today's Menu:\n"
+                for m in diet.get('meals', []):
+                    meals_text += f"- **{m.get('time')}** {m.get('icon', '')} {m.get('meal')}: {m.get('menu')}\n"
+            
+            response = f"""## 👨‍⚕️ Crew Health Analysis
+
+**Nutrition Status:** {status_icon} {nut_status.upper()}
+
+### Daily Intake:
+| Nutrient | Current | Optimal | Deficit |
+|----------|---------|---------|---------|
+| Calories | {health.get('calories', {}).get('current', 'N/A')} kcal | {health.get('calories', {}).get('optimal', 2500)} kcal | {health.get('calories', {}).get('deficit', 0)} |
+| Protein | {health.get('protein', {}).get('current', 'N/A')} g | {health.get('protein', {}).get('optimal', 100)} g | {health.get('protein', {}).get('deficit', 0)} |
+| Water | {health.get('hydration', {}).get('current', 'N/A')} L | {health.get('hydration', {}).get('optimal', 2.0)} L | {health.get('hydration', {}).get('deficit', 0)} |
+| Vitamins | {health.get('vitamins', {}).get('current', 'N/A')}% | {health.get('vitamins', {}).get('optimal', 100)}% | {health.get('vitamins', {}).get('deficit', 0)} |
+{meals_text}
+**Recommendation:** Maintain optimal hydration levels and monitor protein intake."""
+        
+        elif is_power_query:
             pwr = context.get('power', {})
-            response = f"""**Power System Status:**
+            response = f"""## ⚡ Power System Status
 
-- Generation: {pwr.get('total_output_mw', 'N/A')} MW
-- Consumption: {pwr.get('consumption_mw', 'N/A')} MW
-- Efficiency: {pwr.get('efficiency_percent', 'N/A')}%
-- Satellites: {pwr.get('satellites', {}).get('online', 'N/A')}/{pwr.get('satellites', {}).get('total', 'N/A')} online"""
+| Parameter | Value |
+|-----------|-------|
+| Generation | {pwr.get('total_output_mw', 'N/A')} MW |
+| Consumption | {pwr.get('consumption_mw', 'N/A')} MW |
+| Available | {pwr.get('available_mw', 'N/A')} MW |
+| Efficiency | {pwr.get('efficiency_percent', 'N/A')}% |
+
+### Satellite Network:
+- **Online:** {pwr.get('satellites', {}).get('online', 'N/A')} / {pwr.get('satellites', {}).get('total', 'N/A')}
+
+Power systems are operating within normal parameters."""
         
-        elif 'task' in msg_lower or 'todo' in msg_lower or 'work' in msg_lower:
+        elif is_task_query:
             tasks_data = context.get('tasks', {})
             pending = tasks_data.get('pending', 0)
             in_progress = tasks_data.get('in_progress', 0)
@@ -258,32 +392,37 @@ _Recommendation: Maintain optimal water intake levels._"""
             in_progress_list = tasks_data.get('in_progress_list', [])
             
             if pending == 0 and in_progress == 0:
-                response = "Great news! You have no pending tasks. All caught up! ✨"
+                response = "✅ **All tasks completed!** Great work, crew! ✨"
             else:
-                lines = [f"Here's your task overview:"]
+                lines = ["## 📋 Task Overview\n"]
                 if in_progress > 0:
-                    lines.append(f"\n🔄 **In Progress ({in_progress}):**")
+                    lines.append(f"### 🔄 In Progress ({in_progress}):")
                     for t in in_progress_list[:5]:
-                        lines.append(f"  • {t.get('name', 'Unnamed')} [{t.get('priority', 'Medium')}]")
+                        lines.append(f"- {t.get('name', 'Unnamed')} `[{t.get('priority', 'Medium')}]`")
                 if pending > 0:
-                    lines.append(f"\n⏳ **Pending ({pending}):**")
+                    lines.append(f"\n### ⏳ Pending ({pending}):")
                     for t in pending_list[:5]:
-                        lines.append(f"  • {t.get('name', 'Unnamed')} [{t.get('priority', 'Medium')}]")
+                        lines.append(f"- {t.get('name', 'Unnamed')} `[{t.get('priority', 'Medium')}]` — {t.get('category', '')}")
                 if completed > 0:
-                    lines.append(f"\n✅ Completed: {completed}")
+                    lines.append(f"\n✅ **Completed:** {completed}")
                 response = "\n".join(lines)
         
         else:
-            response = f"""Hey there! Station is currently **{status.upper()}** - all systems running smoothly.
+            response = f"""## 👋 Hello, Crew!
 
-What would you like to know about? I can help with:
-• **Station status** - sensors, environment
-• **Alerts** - any warnings or issues
-• **Nutrition** - crew diet analysis
-• **Power** - satellite network status
-• **Tasks** - your to-do list
+Station is currently **{status.upper()}** — all systems operational.
 
-Just ask away!"""
+I can help you analyze:
+- **Station status** — sensors, environment
+- **Danger check** — alerts and warnings
+- **Crew health** — nutrition analysis
+- **Diet** — today's meal schedule
+- **Power** — satellite network
+- **Tasks** — your to-do list
+
+Just ask me anything!
+
+_For full AI capabilities, add OPENAI_API_KEY to the backend .env file._"""
         
         return {
             "success": True,

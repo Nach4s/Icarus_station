@@ -7,9 +7,22 @@ from datetime import datetime
 import random
 from dotenv import load_dotenv
 
-# Load environment variables from project root
+# Load environment variables - check backend folder first, then project root
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Try backend/.env first (where the .env actually is)
+backend_env = os.path.join(BACKEND_DIR, '.env')
+root_env = os.path.join(BASE_DIR, '.env')
+
+if os.path.exists(backend_env):
+    load_dotenv(backend_env)
+    print(f"[ENV] Loaded from: {backend_env}")
+elif os.path.exists(root_env):
+    load_dotenv(root_env)
+    print(f"[ENV] Loaded from: {root_env}")
+else:
+    print("[ENV] Warning: No .env file found")
 
 from ai_companion import get_ai_companion
 
@@ -479,7 +492,7 @@ def ai_chat():
         
         # Build context and chat
         ai = get_ai_companion()
-        context = ai.build_context(
+        context, crew_size = ai.build_context(
             telemetry=telemetry,
             alerts=alerts,
             nutrition=nutrition_data,
@@ -488,7 +501,7 @@ def ai_chat():
             station_status=station_status
         )
         
-        result = ai.chat(message, context)
+        result = ai.chat(message, context, crew_size)
         return jsonify(result)
         
     except Exception as e:
@@ -517,7 +530,7 @@ def ai_context():
         station_status = get_station_status_data()
         
         ai = get_ai_companion()
-        context = ai.build_context(
+        context, _ = ai.build_context(
             telemetry=telemetry,
             alerts=alerts,
             nutrition=nutrition_data,
@@ -556,7 +569,8 @@ def get_nutrition_data():
                 'current': requirements['vitamins'].get('current_baseline', requirements['vitamins']['optimal']),
                 'unit': requirements['vitamins']['unit']
             }
-        }
+        },
+        'meal_schedule': nutrition_config.get('meal_schedule', [])
     }
 
 def get_station_status_data():

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Bot, Send, Loader2, AlertTriangle, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
 
 const API_URL = 'http://localhost:5000'
@@ -158,8 +159,8 @@ const AICompanionPanel = () => {
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div className={`max-w-[80%] rounded-xl p-4 ${msg.role === 'user'
-                                ? 'bg-primary/20 border border-primary/30 text-white'
-                                : 'bg-white/5 border border-white/10 text-gray-200'
+                            ? 'bg-primary/20 border border-primary/30 text-white'
+                            : 'bg-white/5 border border-white/10 text-gray-200'
                             }`}>
                             {msg.role === 'assistant' && (
                                 <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
@@ -167,8 +168,29 @@ const AICompanionPanel = () => {
                                     <span className="text-xs text-primary font-medium">AI Companion</span>
                                 </div>
                             )}
-                            <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                                {msg.content}
+                            <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                                {msg.role === 'assistant' ? (
+                                    <ReactMarkdown
+                                        components={{
+                                            h2: ({ node, ...props }) => <h2 className="text-lg font-bold text-white mt-2 mb-2" {...props} />,
+                                            h3: ({ node, ...props }) => <h3 className="text-md font-semibold text-gray-200 mt-2 mb-1" {...props} />,
+                                            strong: ({ node, ...props }) => <strong className="text-white font-semibold" {...props} />,
+                                            ul: ({ node, ...props }) => <ul className="list-disc list-inside space-y-1 my-2" {...props} />,
+                                            ol: ({ node, ...props }) => <ol className="list-decimal list-inside space-y-1 my-2" {...props} />,
+                                            li: ({ node, ...props }) => <li className="text-gray-300" {...props} />,
+                                            p: ({ node, ...props }) => <p className="my-1" {...props} />,
+                                            table: ({ node, ...props }) => <table className="w-full my-2 text-sm" {...props} />,
+                                            thead: ({ node, ...props }) => <thead className="border-b border-white/20" {...props} />,
+                                            th: ({ node, ...props }) => <th className="text-left py-1 px-2 text-gray-400 font-medium" {...props} />,
+                                            td: ({ node, ...props }) => <td className="py-1 px-2 text-gray-300" {...props} />,
+                                            code: ({ node, ...props }) => <code className="bg-white/10 px-1 py-0.5 rounded text-primary text-xs" {...props} />,
+                                        }}
+                                    >
+                                        {msg.content}
+                                    </ReactMarkdown>
+                                ) : (
+                                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -218,7 +240,7 @@ const AICompanionPanel = () => {
 
             {/* Footer note */}
             <p className="text-xs text-gray-500 text-center mt-4">
-                AI analyzes real station data. Add GEMINI_API_KEY for full functionality.
+                Powered by OpenAI. Add OPENAI_API_KEY to backend .env for full functionality.
             </p>
         </div>
     )
