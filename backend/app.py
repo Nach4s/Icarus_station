@@ -663,7 +663,7 @@ def get_station_status():
 @socketio.on('connect')
 def handle_connect():
     print('[SOCKET] Client connected')
-    emit('connected', {'data': 'Connected to Icarus Station'})
+    emit('connected', {'data': 'Connected to Baiterek Station'})
     # Send current data immediately
     if current_telemetry:
         emit('telemetry_update', current_telemetry)
@@ -712,7 +712,7 @@ if __name__ == '__main__':
         })
     
     print("=" * 50)
-    print("  ICARUS STATION - Backend Server")
+    print("  BAITEREK STATION - Backend Server")
     print("=" * 50)
     print(f"  Sensor Endpoint: POST /api/sensors")
     print(f"  Telemetry:       GET  /api/telemetry")

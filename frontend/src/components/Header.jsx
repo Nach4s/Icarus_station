@@ -28,7 +28,7 @@ const Header = ({ stationName, missionId, connected }) => {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold text-white tracking-wide">
-                {stationName || 'ICARUS'}
+                {stationName || 'BAITEREK'}
               </h1>
               <p className="text-xs text-gray-400 font-mono tracking-wider">
                 {missionId || 'MISSION-2026'}

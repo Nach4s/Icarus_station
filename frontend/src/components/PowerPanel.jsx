@@ -1,5 +1,5 @@
 import React from 'react'
-import { Zap, TrendingUp, Battery, Sun, Activity } from 'lucide-react'
+import { Zap, TrendingUp, Battery, Sun, Activity, Radio, CheckCircle } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 const PowerPanel = ({ power, config, detailed = false }) => {
@@ -30,7 +30,70 @@ const PowerPanel = ({ power, config, detailed = false }) => {
 
   const COLORS = ['#38bdf8', '#818cf8', '#a78bfa', '#f472b6', '#34d399']
 
-  // Stat card component
+  // Power Sources data
+  const powerSources = [
+    { name: 'Jupiter Generator', output: 1700000, maxOutput: 2500000 },
+    { name: 'Europa Generator', output: 2350000, maxOutput: 3000000 }
+  ]
+
+  // System Status data
+  const systemStatus = [
+    { name: 'Jupiter Sensor Network', status: 'NOMINAL' },
+    { name: 'Io Generator', status: 'NOMINAL' }
+  ]
+
+  // Power Source Card - for generators with output values
+  const PowerSourceCard = ({ name, output, maxOutput }) => {
+    const percentage = (output / maxOutput) * 100
+    return (
+      <div className="glass-card glass-card-hover p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">{name}</h3>
+            <p className="text-xs text-gray-500">Power Source</p>
+          </div>
+        </div>
+        <div className="mb-3">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-display font-bold text-primary">{formatNumber(output)}</span>
+            <span className="text-sm text-gray-400">W</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">≈ {(output / 1000000).toFixed(2)} MW</p>
+        </div>
+        <div className="progress-bar">
+          <div
+            className="progress-fill nominal"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <div className="mt-1 text-xs text-gray-500 text-right">{percentage.toFixed(0)}% capacity</div>
+      </div>
+    )
+  }
+
+  // Status Card - for systems with nominal status only
+  const StatusCard = ({ name, status }) => (
+    <div className="glass-card glass-card-hover p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2.5 rounded-lg bg-status-nominal/10 border border-status-nominal/20">
+          <Radio className="w-5 h-5 text-status-nominal" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-white">{name}</h3>
+          <p className="text-xs text-gray-500">System Status</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <CheckCircle className="w-5 h-5 text-status-nominal" />
+        <span className="text-lg font-bold text-status-nominal uppercase tracking-wider">{status}</span>
+      </div>
+    </div>
+  )
+
+  // Stat card component (kept for overview mode)
   const PowerStat = ({ icon: Icon, label, value, subValue, color = 'text-white' }) => (
     <div className="glass-card glass-card-hover p-4 text-center">
       <div className="stat-icon mx-auto mb-3">
@@ -102,31 +165,32 @@ const PowerPanel = ({ power, config, detailed = false }) => {
   // Detailed mode
   return (
     <div className="glass-card p-6 animate-slide-up">
+      {/* Power Sources & Status Section */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-status-nominal/10">
-            <Zap className="w-6 h-6 text-status-nominal" />
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Zap className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-display font-bold text-white">Satellite Power Network</h2>
-            <p className="text-sm text-gray-400">Solar array network in Kuiper Belt orbit</p>
+            <h2 className="text-xl font-display font-bold text-white">Power Sources & Status</h2>
+            <p className="text-sm text-gray-400">Energy grid architecture overview</p>
           </div>
         </div>
 
-        {/* Status badge */}
+        {/* Overall Status badge */}
         <div className="px-4 py-2 rounded-lg bg-status-nominal/10 border border-status-nominal/30">
-          <span className="font-bold text-status-nominal uppercase tracking-wider">NOMINAL</span>
+          <span className="font-bold text-status-nominal uppercase tracking-wider">ONLINE</span>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 stagger-children">
-        <PowerStat icon={Sun} label="Total Satellites" value={formatNumber(satellites.total_count)} />
-        <PowerStat icon={Battery} label="Active" value={formatNumber(satellites.online_count)} color="text-status-nominal" />
-        <PowerStat icon={Zap} label="Total Output" value={`${formatNumber(totalOutputW)} W`} subValue={`${satellites.total_output.toFixed(1)} MW`} color="text-primary" />
-        <PowerStat icon={TrendingUp} label="Max Capacity" value={`${formatNumber(maxCapacityW)} W`} subValue={`${satellites.max_capacity.toFixed(1)} MW`} color="text-blue-400" />
-        <PowerStat icon={Activity} label="Efficiency" value={`${satellites.efficiency}%`} color="text-status-nominal" />
-        <PowerStat icon={Sun} label="Avg Output" value={`${avgOutputW} W`} color="text-status-warning" />
+      {/* Power Sources & Status Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger-children">
+        {powerSources.map((source, index) => (
+          <PowerSourceCard key={index} {...source} />
+        ))}
+        {systemStatus.map((system, index) => (
+          <StatusCard key={index} {...system} />
+        ))}
       </div>
 
       {/* System Distribution and Chart */}

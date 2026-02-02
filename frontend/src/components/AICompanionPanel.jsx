@@ -1,20 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Bot, Send, Loader2, AlertTriangle, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
+import { Bot, Send, Loader2, AlertTriangle, CheckCircle, AlertCircle, Sparkles, Trash2 } from 'lucide-react'
 
 const API_URL = 'http://localhost:5000'
+const STORAGE_KEY = 'baiterek_ai_chat_history'
+
+const defaultMessage = {
+    role: 'assistant',
+    content: "Hello! I'm the Baiterek Station AI Companion. I can help you analyze station status, sensors, crew nutrition, and safety systems. Ask me anything!"
+}
 
 const AICompanionPanel = ({ embedded = false }) => {
-    const [messages, setMessages] = useState([
-        {
-            role: 'assistant',
-            content: "Hello! I'm the Icarus Station AI Companion. I can help you analyze station status, sensors, crew nutrition, and safety systems. Ask me anything!"
+    // Load messages from localStorage on init
+    const [messages, setMessages] = useState(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY)
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                return parsed.length > 0 ? parsed : [defaultMessage]
+            }
+        } catch (e) {
+            console.error('Failed to load chat history:', e)
         }
-    ])
+        return [defaultMessage]
+    })
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [stationStatus, setStationStatus] = useState('nominal')
     const messagesEndRef = useRef(null)
+
+    // Save messages to localStorage whenever they change
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+        } catch (e) {
+            console.error('Failed to save chat history:', e)
+        }
+    }, [messages])
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -23,6 +45,13 @@ const AICompanionPanel = ({ embedded = false }) => {
     useEffect(() => {
         scrollToBottom()
     }, [messages])
+
+    // Clear chat history
+    const clearHistory = () => {
+        setMessages([defaultMessage])
+        localStorage.removeItem(STORAGE_KEY)
+    }
+
 
     const sendMessage = async (messageText) => {
         const userMessage = messageText || input.trim()
@@ -129,10 +158,23 @@ const AICompanionPanel = ({ embedded = false }) => {
                         </div>
                     </div>
 
-                    {/* Station Status Indicator */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStatusColor()}`}>
-                        {getStatusIcon()}
-                        <span className="text-sm font-bold">{getStatusText()}</span>
+                    <div className="flex items-center gap-2">
+                        {/* Clear History Button */}
+                        <button
+                            onClick={clearHistory}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 
+                                       text-gray-400 hover:text-status-critical hover:border-status-critical/30 transition-colors"
+                            title="Clear chat history"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="text-xs">Clear</span>
+                        </button>
+
+                        {/* Station Status Indicator */}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStatusColor()}`}>
+                            {getStatusIcon()}
+                            <span className="text-sm font-bold">{getStatusText()}</span>
+                        </div>
                     </div>
                 </div>
             )}

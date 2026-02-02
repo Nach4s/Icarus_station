@@ -38,12 +38,12 @@ function App() {
 
     socket.on('connect', () => {
       setConnected(true)
-      console.log('Connected to Icarus Station')
+      console.log('Connected to Baiterek Station')
     })
 
     socket.on('disconnect', () => {
       setConnected(false)
-      console.log('Disconnected from Icarus Station')
+      console.log('Disconnected from Baiterek Station')
     })
 
     socket.on('telemetry_update', (data) => {
@@ -222,7 +222,7 @@ function App() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center animate-pulse">
             <Activity className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-white mb-2">ICARUS STATION</h1>
+          <h1 className="text-2xl font-display font-bold text-white mb-2">BAITEREK STATION</h1>
           <p className="text-gray-400">Initializing systems...</p>
         </div>
       </div>
@@ -352,7 +352,7 @@ function App() {
         {/* Footer */}
         <footer className="mt-8 pb-8 text-center">
           <p className="text-xs text-gray-500">
-            ICARUS STATION • Mission Control Interface • {new Date().getFullYear()}
+            BAITEREK STATION • Mission Control Interface • {new Date().getFullYear()}
           </p>
         </footer>
       </main>

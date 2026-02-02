@@ -1,8 +1,8 @@
-# Icarus Station Mission Configuration
+# Baiterek Station Mission Configuration
 
 station:
-  name: "Icarus Station"
-  mission_id: "ICARUS-2026"
+  name: "Baiterek Station"
+  mission_id: "BAITEREK-2026"
   crew_size: 5000
   location: "Jupiter Orbit"
   mission_duration: "Unlimited"

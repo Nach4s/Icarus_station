@@ -1,5 +1,5 @@
 """
-AI Companion Module for Icarus Station
+AI Companion Module for Baiterek Station
 Provides intelligent analysis of station data using OpenAI API.
 """
 
@@ -15,7 +15,7 @@ except ImportError:
     print("[AI] Warning: openai library not installed. AI features disabled.")
 
 # System prompt for AI personality (English)
-SYSTEM_PROMPT = """You are the AI Companion of "Icarus Station", a space station orbiting Jupiter with {crew_size} crew members.
+SYSTEM_PROMPT = """You are the AI Companion of "Baiterek Station", a space station orbiting Jupiter with {crew_size} crew members.
 
 ROLE:
 - Station engineer, medical analyst, and knowledgeable assistant

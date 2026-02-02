@@ -1,5 +1,5 @@
 import React from 'react'
-import { Activity, Users, AlertTriangle, CheckCircle, Zap, Radio, Wifi, WifiOff, Orbit } from 'lucide-react'
+import { Activity, Users, AlertTriangle, CheckCircle, Zap, Radio, Orbit } from 'lucide-react'
 
 const StationStatus = ({ status }) => {
   const getStatusColor = (statusType) => {
@@ -79,26 +79,6 @@ const StationStatus = ({ status }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Arduino connection */}
-              <div className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-                ${status.arduino_connected
-                  ? 'bg-status-nominal/10 border border-status-nominal/30'
-                  : 'bg-status-critical/10 border border-status-critical/30'}
-              `}>
-                {status.arduino_connected ? (
-                  <>
-                    <Wifi className="w-4 h-4 text-status-nominal" />
-                    <span className="text-sm text-status-nominal font-medium">Arduino</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="w-4 h-4 text-status-critical" />
-                    <span className="text-sm text-status-critical font-medium">No Link</span>
-                  </>
-                )}
-              </div>
-
               {/* Overall status badge */}
               <div className={`px-4 py-2 rounded-lg border ${getStatusBg(status.status)}`}>
                 <span className={`font-bold uppercase tracking-wider ${getStatusColor(status.status)}`}>

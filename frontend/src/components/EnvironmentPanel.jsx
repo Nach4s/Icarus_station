@@ -109,21 +109,21 @@ const SensorCard = ({ sensorKey, value, status, thresholds }) => {
     <div className={`glass-card glass-card-hover p-4 ${isCritical ? 'border-status-critical' : ''}`}>
       <div>
         {/* Header with icon and status */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className={`p-2 rounded-lg bg-gradient-to-br ${config.gradient} shadow-lg flex-shrink-0`}>
-              <Icon className="w-4 h-4 text-white" />
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className={`p-3 rounded-xl bg-gradient-to-br ${config.gradient} shadow-lg flex-shrink-0`}>
+              <Icon className="w-6 h-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white truncate">{config.label}</h3>
-              <span className="text-xs text-gray-500 truncate block">{config.description}</span>
+              <h3 className="text-base font-bold text-white truncate">{config.label}</h3>
+              <span className="text-sm text-gray-400 truncate block">{config.description}</span>
             </div>
           </div>
 
-          {/* Status badge - compact */}
-          <div className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full ${statusStyles.bg} border ${statusStyles.border}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot} ${isCritical ? 'animate-ping' : ''}`} />
-            <span className={`text-[10px] font-bold uppercase ${statusStyles.color}`}>
+          {/* Status badge */}
+          <div className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full ${statusStyles.bg} border ${statusStyles.border}`}>
+            <span className={`w-2 h-2 rounded-full ${statusStyles.dot} ${isCritical ? 'animate-ping' : ''}`} />
+            <span className={`text-xs font-bold uppercase ${statusStyles.color}`}>
               {status === 'nominal' ? 'OK' : status === 'warning' ? 'WARN' : status === 'critical' ? 'CRIT' : 'N/A'}
             </span>
           </div>
@@ -142,14 +142,14 @@ const SensorCard = ({ sensorKey, value, status, thresholds }) => {
 
         {/* Progress bar */}
         {thresholds && (
-          <div className="mt-2">
-            <div className="progress-bar">
+          <div className="mt-3">
+            <div className="progress-bar-lg">
               <div
                 className={`progress-fill ${status}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <div className="flex justify-between mt-2 text-sm text-gray-400 font-medium">
               <span>{thresholds.min}{config.unit}</span>
               <span>{thresholds.max}{config.unit}</span>
             </div>
@@ -260,7 +260,7 @@ function EnvironmentPanel({ telemetry, config, detailed }) {
       {/* Last update */}
       {telemetry?.timestamp && (
         <div className="mt-6 pt-4 border-t border-white/5 text-center">
-          <span className="text-xs text-gray-500 font-mono">
+          <span className="text-sm text-gray-400 font-mono">
             Last update: {new Date(telemetry.timestamp).toLocaleTimeString()}
           </span>
         </div>
