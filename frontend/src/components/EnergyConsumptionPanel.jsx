@@ -347,6 +347,8 @@ const EnergyConsumptionPanel = ({ telemetry, power, config }) => {
                                         borderRadius: '0.75rem',
                                         backdropFilter: 'blur(10px)'
                                     }}
+                                    itemStyle={{ color: '#fff' }}
+                                    labelStyle={{ color: '#e2e8f0' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -374,88 +376,7 @@ const EnergyConsumptionPanel = ({ telemetry, power, config }) => {
 
 
 
-            {/* SECTION 4: Apartment Type Breakdown */}
-            <div className="glass-card p-6 animate-slide-up" style={{ animationDelay: '250ms' }}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg bg-blue-500/10">
-                        <Home className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-display font-bold text-white">Unit Type Analysis</h2>
-                        <p className="text-sm text-gray-400">Energy usage by apartment category</p>
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Large Apartments */}
-                    <div className="glass-card glass-card-hover p-5">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-500/5 border border-pink-500/30">
-                                <Building2 className="w-5 h-5 text-pink-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-sm font-semibold text-white">Large Apartments</h3>
-                                <p className="text-xs text-gray-500">180m² • 3 occupants</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Units</span>
-                                <span className="text-white font-medium">{formatNumber(populationData.largeApartments.units)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Population</span>
-                                <span className="text-white font-medium">{formatNumber(populationData.largeApartments.people)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Hourly/Unit</span>
-                                <span className="text-primary font-medium">{populationData.largeApartments.hourlyPerUnit} kWh</span>
-                            </div>
-                            <div className="pt-3 border-t border-gray-800/50">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-bold text-white">Daily Total</span>
-                                    <span className="text-lg font-bold text-pink-400">{formatPower(populationData.largeApartments.dailyTotal)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Small Apartments */}
-                    <div className="glass-card glass-card-hover p-5">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/30">
-                                <Home className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-sm font-semibold text-white">Small Apartments</h3>
-                                <p className="text-xs text-gray-500">60m² • 1 occupant</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Units</span>
-                                <span className="text-white font-medium">{formatNumber(populationData.smallApartments.units)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Population</span>
-                                <span className="text-white font-medium">{formatNumber(populationData.smallApartments.people)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Hourly/Unit</span>
-                                <span className="text-primary font-medium">{populationData.smallApartments.hourlyPerUnit} kWh</span>
-                            </div>
-                            <div className="pt-3 border-t border-gray-800/50">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-bold text-white">Daily Total</span>
-                                    <span className="text-lg font-bold text-purple-400">{formatPower(populationData.smallApartments.dailyTotal)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     )
 }
