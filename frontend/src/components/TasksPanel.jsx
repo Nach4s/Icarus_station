@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { CheckCircle, Clock, Play, Pause, Trash2, Plus, ListTodo } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { CheckCircle, Clock, Play, Pause, Trash2, Plus, ListTodo, Timer } from 'lucide-react'
 
 const TasksPanel = ({ tasks, config, onUpdate, onCreate, onDelete }) => {
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -9,6 +9,38 @@ const TasksPanel = ({ tasks, config, onUpdate, onCreate, onDelete }) => {
     priority: 'Medium',
     duration: 60
   })
+  const [taskTimers, setTaskTimers] = useState({})
+
+  // Timer effect for in-progress tasks
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const inProgressTasks = tasks.filter(t => t.status === 'in_progress')
+      if (inProgressTasks.length > 0) {
+        setTaskTimers(prev => {
+          const updated = { ...prev }
+          inProgressTasks.forEach(task => {
+            if (!updated[task.id]) {
+              updated[task.id] = { startTime: Date.now(), elapsed: 0 }
+            } else {
+              updated[task.id].elapsed = Math.floor((Date.now() - updated[task.id].startTime) / 1000)
+            }
+          })
+          return updated
+        })
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [tasks])
+
+  // Reset timer when task starts
+  const handleStartTask = (taskId) => {
+    setTaskTimers(prev => ({
+      ...prev,
+      [taskId]: { startTime: Date.now(), elapsed: 0 }
+    }))
+    onUpdate(taskId, { status: 'in_progress' })
+  }
 
   const handleCreateTask = () => {
     if (newTask.name.trim()) {
@@ -38,74 +70,123 @@ const TasksPanel = ({ tasks, config, onUpdate, onCreate, onDelete }) => {
     }
   }
 
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   const groupedTasks = {
     pending: tasks.filter(t => t.status === 'pending'),
     in_progress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed')
   }
 
-  const TaskCard = ({ task }) => (
-    <div className="glass-card glass-card-hover p-4">
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="text-sm font-semibold text-white">{task.name}</h4>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="text-gray-500 hover:text-status-critical transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+  const TaskCard = ({ task }) => {
+    const timer = taskTimers[task.id]
+    const elapsedSeconds = timer?.elapsed || 0
+    const totalSeconds = task.duration * 60
+    const progress = Math.min(100, (elapsedSeconds / totalSeconds) * 100)
+    const isOvertime = elapsedSeconds > totalSeconds
 
-      <div className="flex flex-wrap gap-2 mb-3">
-        <span className={`text-xs px-2 py-1 rounded-full border ${getPriorityStyles(task.priority)}`}>
-          {task.priority}
-        </span>
-        <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10">
-          {task.category}
-        </span>
-      </div>
-
-      <div className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        <span>{task.duration} min</span>
-      </div>
-
-      <div className="flex gap-2">
-        {task.status === 'pending' && (
+    return (
+      <div className="glass-card glass-card-hover p-4">
+        <div className="flex items-start justify-between mb-3">
+          <h4 className="text-sm font-semibold text-white">{task.name}</h4>
           <button
-            onClick={() => onUpdate(task.id, { status: 'in_progress' })}
-            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 
-                       text-primary text-xs rounded-lg transition-colors border border-primary/30"
+            onClick={() => onDelete(task.id)}
+            className="text-gray-500 hover:text-status-critical transition-colors"
           >
-            <Play className="w-3 h-3" /> Start
+            <Trash2 className="w-4 h-4" />
           </button>
-        )}
-        {task.status === 'in_progress' && (
-          <>
-            <button
-              onClick={() => onUpdate(task.id, { status: 'completed' })}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-status-nominal/20 hover:bg-status-nominal/30 
-                         text-status-nominal text-xs rounded-lg transition-colors border border-status-nominal/30"
-            >
-              <CheckCircle className="w-3 h-3" /> Done
-            </button>
-            <button
-              onClick={() => onUpdate(task.id, { status: 'pending' })}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 
-                         text-gray-400 text-xs rounded-lg transition-colors border border-white/10"
-            >
-              <Pause className="w-3 h-3" /> Pause
-            </button>
-          </>
-        )}
-        {task.status === 'completed' && (
-          <div className="flex-1 text-center text-xs text-status-nominal py-1.5">
-            ✓ Completed
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          <span className={`text-xs px-2 py-1 rounded-full border ${getPriorityStyles(task.priority)}`}>
+            {task.priority}
+          </span>
+          <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10">
+            {task.category}
+          </span>
+        </div>
+
+        <div className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          <span>{(task.duration / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} h</span>
+        </div>
+
+        {/* Timer Progress Bar for In-Progress Tasks */}
+        {task.status === 'in_progress' && timer && (
+          <div className="mb-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Timer className={`w-3.5 h-3.5 ${isOvertime ? 'text-status-critical' : 'text-primary'} animate-pulse`} />
+                <span className={`text-sm font-mono font-bold ${isOvertime ? 'text-status-critical' : 'text-primary'}`}>
+                  {formatTime(elapsedSeconds)}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                / {formatTime(totalSeconds)}
+              </span>
+            </div>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ease-linear ${isOvertime
+                    ? 'bg-gradient-to-r from-status-critical to-red-400 animate-pulse'
+                    : 'bg-gradient-to-r from-primary to-cyan-400'
+                  }`}
+                style={{ width: `${Math.min(100, progress)}%` }}
+              />
+            </div>
+            {isOvertime && (
+              <div className="text-xs text-status-critical font-medium text-center animate-pulse">
+                ⚠️ Overtime: +{formatTime(elapsedSeconds - totalSeconds)}
+              </div>
+            )}
           </div>
         )}
+
+        <div className="flex gap-2">
+          {task.status === 'pending' && (
+            <button
+              onClick={() => handleStartTask(task.id)}
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 
+                         text-primary text-xs rounded-lg transition-colors border border-primary/30"
+            >
+              <Play className="w-3 h-3" /> Start
+            </button>
+          )}
+          {task.status === 'in_progress' && (
+            <>
+              <button
+                onClick={() => onUpdate(task.id, { status: 'completed' })}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-status-nominal/20 hover:bg-status-nominal/30 
+                           text-status-nominal text-xs rounded-lg transition-colors border border-status-nominal/30"
+              >
+                <CheckCircle className="w-3 h-3" /> Done
+              </button>
+              <button
+                onClick={() => onUpdate(task.id, { status: 'pending' })}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 
+                           text-gray-400 text-xs rounded-lg transition-colors border border-white/10"
+              >
+                <Pause className="w-3 h-3" /> Pause
+              </button>
+            </>
+          )}
+          {task.status === 'completed' && (
+            <div className="flex-1 text-center text-xs text-status-nominal py-1.5">
+              ✓ Completed
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const TaskColumn = ({ title, icon: Icon, iconColor, tasks: columnTasks }) => (
     <div>
@@ -191,11 +272,13 @@ const TasksPanel = ({ tasks, config, onUpdate, onCreate, onDelete }) => {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-2">Duration (min)</label>
+              <label className="block text-xs text-gray-400 mb-2">Duration (hours)</label>
               <input
                 type="number"
-                value={newTask.duration}
-                onChange={(e) => setNewTask({ ...newTask, duration: parseInt(e.target.value) })}
+                step="0.5"
+                min="0.5"
+                value={newTask.duration / 60}
+                onChange={(e) => setNewTask({ ...newTask, duration: Math.max(0, parseFloat(e.target.value || 0)) * 60 })}
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm
                            focus:outline-none focus:border-primary/50 transition-colors"
               />

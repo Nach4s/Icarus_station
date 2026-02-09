@@ -113,22 +113,22 @@ tasks:
     - name: "Air filter maintenance"
       category: "Maintenance"
       priority: "High"
-      duration: 45
+      duration: 60
       frequency: "daily"
     - name: "Hydroponic check"
       category: "Maintenance"
       priority: "Medium"
-      duration: 30
+      duration: 90
       frequency: "daily"
     - name: "Sensor recalibration"
       category: "Maintenance"
       priority: "Medium"
-      duration: 60
+      duration: 120
       frequency: "weekly"
     - name: "Communication system test"
       category: "Communication"
       priority: "High"
-      duration: 20
+      duration: 90
       frequency: "daily"
 
   systems:
