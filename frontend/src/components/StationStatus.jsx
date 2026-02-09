@@ -1,7 +1,7 @@
 import React from 'react'
 import { Activity, Users, AlertTriangle, CheckCircle, Zap, Radio, Orbit } from 'lucide-react'
 
-const StationStatus = ({ status }) => {
+const StationStatus = ({ status, config }) => {
   const getStatusColor = (statusType) => {
     switch (statusType) {
       case 'nominal':
@@ -93,7 +93,7 @@ const StationStatus = ({ status }) => {
             <StatCard
               icon={Users}
               label="Population"
-              value={status.crew_size?.toLocaleString() || '0'}
+              value={config?.station?.crew_size?.toLocaleString() || status.crew_size?.toLocaleString() || '10,000'}
               unit=""
             />
             <StatCard

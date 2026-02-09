@@ -3,7 +3,7 @@
 station:
   name: "Baiterek Station"
   mission_id: "BAITEREK-2026"
-  crew_size: 5000
+  crew_size: 10000
   location: "Jupiter Orbit"
   mission_duration: "Unlimited"
   mission_start: "2026"
@@ -131,80 +131,6 @@ tasks:
       duration: 20
       frequency: "daily"
 
-# =============================================================================
-# NUTRITION
-# =============================================================================
-nutrition:
-  daily_requirements:
-    calories:
-      optimal: 2500
-      unit: "kcal"
-      warning_threshold: 200
-      current_baseline: 2380
-    protein:
-      optimal: 100
-      unit: "g"
-      warning_threshold: 15
-      current_baseline: 85
-    water:
-      optimal: 2.0
-      unit: "L"
-      warning_threshold: 0.3
-      current_baseline: 1.6
-    vitamins:
-      optimal: 100
-      unit: "%"
-      warning_threshold: 10
-      current_baseline: 92
-  
-  meal_schedule:
-    - time: "07:30"
-      meal: "Breakfast"
-      menu: "Quail egg omelet with spinach and wheat bread, strawberries"
-      icon: "🍳"
-    - time: "11:00"
-      meal: "Morning Snack"
-      menu: "Bread, boiled egg, dried vegetables"
-      icon: "🥖"
-    - time: "13:00"
-      meal: "Lunch"
-      menu: "Tilapia with mashed potatoes and tomato-carrot salad"
-      icon: "🐟"
-    - time: "16:00"
-      meal: "Afternoon Snack"
-      menu: "Strawberries, protein bar"
-      icon: "🍓"
-    - time: "19:00"
-      meal: "Dinner"
-      menu: "Stewed rabbit with beans, onions, and herbs"
-      icon: "🥕"
-  
-  storage:
-    - name: "Freeze-dried Meals"
-      icon: "freeze"
-      quantity: 45
-      unit: "packs"
-      daily_consumption: 3
-      critical_days: 5
-    - name: "Protein Bars"
-      icon: "freeze"
-      quantity: 24
-      unit: "bars"
-      daily_consumption: 3
-      critical_days: 3
-    - name: "Water Supply"
-      icon: "water"
-      quantity: 40
-      unit: "L"
-      daily_consumption: 12
-      critical_days: 2
-    - name: "Greens (hydroponic)"
-      icon: "greens"
-      quantity: 0
-      unit: "continuous"
-      daily_consumption: 0
-      critical_days: 0
-  
   systems:
     hydroponic_status: "nominal"
     water_filtration_last_maintenance: 3

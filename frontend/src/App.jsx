@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard, Bot, X, MessageCircle } from 'lucide-react'
+import { Activity, Zap, AlertTriangle, CheckCircle, Radio, Apple, LayoutDashboard, Bot, X, MessageCircle, Flame } from 'lucide-react'
 import Header from './components/Header'
 import EnvironmentPanel from './components/EnvironmentPanel'
 import PowerPanel from './components/PowerPanel'
@@ -7,6 +7,7 @@ import TasksPanel from './components/TasksPanel'
 import AlertsPanel from './components/AlertsPanel'
 import StationStatus from './components/StationStatus'
 import NutritionPanel from './components/NutritionPanel'
+import EnergyConsumptionPanel from './components/EnergyConsumptionPanel'
 import AICompanionPanel from './components/AICompanionPanel'
 import { io } from 'socket.io-client'
 
@@ -243,7 +244,7 @@ function App() {
 
       <main className="container mx-auto px-4 py-6 relative z-10">
         {/* Station Status Hero */}
-        <StationStatus status={stationStatus} />
+        <StationStatus status={stationStatus} config={config} />
 
         {/* Navigation Tabs */}
         <div className="tab-nav mb-6 overflow-x-auto">
@@ -297,7 +298,10 @@ function App() {
           )}
 
           {activeTab === 'power' && (
-            <PowerPanel power={power} config={config} detailed={true} />
+            <div className="space-y-6">
+              <PowerPanel power={power} config={config} detailed={true} showDistribution={false} />
+              <EnergyConsumptionPanel telemetry={telemetry} power={power} config={config} />
+            </div>
           )}
 
           {activeTab === 'tasks' && (
